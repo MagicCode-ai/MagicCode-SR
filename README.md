@@ -8,6 +8,7 @@ We invite you to download and try it out, or visit our official website:
 
 ## Contents of v1.0.0
 The repository structure is organized as follows:
+"""
 ├── demo
 │ └── Provides an example of how to use the super-resolution library
 ├── doc
@@ -25,4 +26,4 @@ The repository structure is organized as follows:
 │ └── windows (Super-resolution library for x86-based Windows systems)
 └── model
 └── Super-resolution model parameters
-已生成代码
+"""
