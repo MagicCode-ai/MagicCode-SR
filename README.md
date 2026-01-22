@@ -1,4 +1,23 @@
 # MagicCode AI Super-Resolution: The Fastest AI Super-Resolution in the World
-Leveraging the proprietary ECBOC algorithm independently developed by MagicCode, our AI super-resolution technology has achieved a breakthrough in the speed-to-quality ratio. Its processing efficiency ranks among the global top tier—with the VeryFast mode, it can support a processing speed of nearly 4K@60fps on iPhone 14 Pro, solidifying its status as the fastest AI super-resolution solution available today.
+We are pleased to announce the release of MagicCode SR v1.0.0. Leveraging the proprietary ECBOC algorithm independently developed by MagicCode, our AI super-resolution technology has achieved a breakthrough in the speed-to-quality ratio—its processing efficiency ranks among the global top tier. Specifically, the VeryFast mode supports a processing speed of nearly 4K@60fps on iPhone 14 Pro, establishing itself as the fastest AI super-resolution solutions available today. We invite you to download and try it out, or visit our official website at: www.magiccode-ai.com.
 
-Welcome to visit http://www.magiccode-ai.com/products/video-super-resolution to download and try it out.
+#Contents of v1.0.0 guide
+├── demo: Provides an example of how to use the super-resolution library
+│
+├── doc: Related documentation
+│   ├── MagicCode Super-Resolution Software End User License Agreement (EULA).pdf
+│   ├── MagicCode Super-Resolution Software Error Code Manual.pdf
+│   ├── MagicCode Super-Resolution Software Privacy Policy.pdf
+│   └── MagicCode Super-Resolution Software Specification.pdf
+│
+├── header: 
+│   └── mc_interface.h: Header file of the library
+│
+├── lib: Super-resolution library files for different platforms
+│   ├── android: Super-resolution library for Android platform
+│   ├── iOS: Super-resolution library for iOS platform
+│   ├── macos_arm: Super-resolution library for Mac systems with M-series chips
+│   ├── macos_x86: Super-resolution library for x86-based Mac systems
+│   └── windows: Super-resolution library for x86-based Windows systems
+│
+└── model: Super-resolution model parameters
