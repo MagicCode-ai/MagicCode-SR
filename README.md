@@ -5,25 +5,3 @@ We are pleased to announce the release of MagicCode SR v1.0.0. Leveraging the pr
 We invite you to download and try it out, or visit our official website:  
 [www.magiccode-ai.com](https://www.magiccode-ai.com)
 
-
-## Contents of v1.0.0
-The repository structure is organized as follows:
-"""
-├── demo
-│ └── Provides an example of how to use the super-resolution library
-├── doc
-│ ├── MagicCode Super-Resolution Software End User License Agreement (EULA).pdf
-│ ├── MagicCode Super-Resolution Software Error Code Manual.pdf
-│ ├── MagicCode Super-Resolution Software Privacy Policy.pdf
-│ └── MagicCode Super-Resolution Software Specification.pdf
-├── header
-│ └── mc_interface.h (Header file of the library)
-├── lib
-│ ├── android (Super-resolution library for Android platform)
-│ ├── iOS (Super-resolution library for iOS platform)
-│ ├── macos_arm (Super-resolution library for Mac systems with M-series chips)
-│ ├── macos_x86 (Super-resolution library for x86-based Mac systems)
-│ └── windows (Super-resolution library for x86-based Windows systems)
-└── model
-└── Super-resolution model parameters
-"""
