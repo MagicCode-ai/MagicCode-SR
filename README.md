@@ -23,9 +23,9 @@ Before using the SDK, please read our Terms of Service(doc/MagicCode Super-Resol
 - `mc_interface.h`: Core header file of the library, including API declarations, data structure definitions, and function prototypes for integration
 
 ### `lib` (Platform-Specific Libraries)
-- `android`: Precompiled super-resolution library for Android (supports ARMv7/ARM64 architectures)
+- `android`: Precompiled super-resolution library for Android (supports ARM64 architectures)
 - `iOS`: Precompiled super-resolution library for iOS (supports iPhone/iPad devices)
-- `macos_arm`: Precompiled super-resolution library for Mac with Apple Silicon (M1/M2/M3 chips)
+- `macos_arm`: Precompiled super-resolution library for Mac with Apple Silicon (M1/M2/M3/M4 chips)
 - `macos_x86`: Precompiled super-resolution library for x86_64-based Mac systems
 - `windows`: Precompiled super-resolution library for x86_64-based Windows systems (Windows 10/11)
 
