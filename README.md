@@ -1,12 +1,16 @@
 # MagicSR: MagicCode AI Super-Resolution
 
-MagicSR is MagicCode's AI super-resolution solution for video/image enhancement on mobile platforms.
+MagicSR is MagicCode's AI super-resolution solution for mobile video and image enhancement.
 
-MagicCode developed a fast convolution method called **PACA**, which accelerates convolution computation by dozens of times without sacrificing numerical accuracy. Based on this method, we designed MagicSR to provide both strong visual quality and production-ready performance.
+MagicCode developed a fast convolution method called **PACA**, which accelerates convolution computation by dozens of times without sacrificing numerical accuracy. Based on this method, we designed MagicSR to provide strong visual quality with production-ready speed.
+
+Official page: [https://www.magiccode-ai.com/products/video-super-resolution](https://www.magiccode-ai.com/products/video-super-resolution)
+
+> Note: the comparison videos in the "MagicSR Overview" section are intentionally omitted here.
 
 ## MagicSR Performance
 
-To evaluate MagicSR, we compared it with benchmark mobile super-resolution solutions including Apple MetalFX and Qualcomm SGSR (2x SR).
+To evaluate MagicSR, we compared it with benchmark mobile SR solutions including Apple MetalFX and Qualcomm SGSR (2x super-resolution).
 
 ### iOS / iPadOS
 
@@ -18,52 +22,71 @@ To evaluate MagicSR, we compared it with benchmark mobile super-resolution solut
 - Image quality: `MagicSR-Speed > MagicSR-HighSpeed > SGSR2.0 > SGSR1.0`
 - Processing speed: `MagicSR-HighSpeed ≈ SGSR1.0 > MagicSR-Speed > SGSR2.0`
 
-## 2x Super-Resolution Benchmark Focus
+## 2x Super-Resolution Speed Data
 
-- iOS speed comparison (A16 Pro platform, metric in ms)
-- Android Vulkan speed comparison (Snapdragon 888 platform, metric in ms)
-- Cross-method image quality comparison to inspect edge clarity, texture detail, and artifacts
+### iOS Super-Resolution Speed Comparison (A16 Pro, ms)
 
-## Test Conclusions
+| Method | Time (ms) |
+| --- | ---: |
+| MagicSR HighSpeed | 3.47 |
+| MagicSR Speed | 4.83 |
+| MetalFX Spatial | 8.82 |
+| MetalFX Temporal | 15.28 |
 
-### iOS Conclusion
+### Android Vulkan Super-Resolution Speed Comparison (Snapdragon 888, ms)
 
-On A16 Pro, compared with Apple MetalFX, MagicSR is significantly faster while delivering comparable or better output image quality.
+| Method | Time (ms) |
+| --- | ---: |
+| SGSR1.0 | 4.678 |
+| MagicSR HighSpeed | 4.581 |
+| MagicSR Speed | 9.91 |
+| SGSR2.0 | 13.47 |
 
-- Speed mode is about `1.82x` faster than MetalFX-Spatial
-- Speed mode is about `3.19x` faster than MetalFX-Temporal
+## Image Comparison Samples
 
-### Android Conclusion
+### Comparison 1
 
-On Snapdragon 888, compared with Qualcomm SGSR:
+![SGSR2.0 Comparison 1](https://www.magiccode-ai.com/images/sr-report/sgsr2.0-1.jpg)
+![MagicSR HighSpeed Comparison 1](https://www.magiccode-ai.com/images/sr-report/quality-1-highspeed.jpg)
+![MagicSR Speed Comparison 1](https://www.magiccode-ai.com/images/sr-report/quality-1-speed.jpg)
+![MetalFX Temporal Comparison 1](https://www.magiccode-ai.com/images/sr-report/metalfx-tsr-1.jpg)
+![MetalFX Spatial Comparison 1](https://www.magiccode-ai.com/images/sr-report/quality-1-metalfx.jpg)
 
-- MagicSR HighSpeed (`~4.581 ms`) is roughly comparable to SGSR1.0 (`~4.678 ms`) in speed
-- MagicSR HighSpeed and MagicSR Speed provide better image quality than SGSR1.0 and SGSR2.0
+### Comparison 2
+
+![SGSR2.0 Comparison 2](https://www.magiccode-ai.com/images/sr-report/sgsr2.0-2.jpg)
+![MagicSR HighSpeed Comparison 2](https://www.magiccode-ai.com/images/sr-report/quality-2-highspeed.jpg)
+![MagicSR Speed Comparison 2](https://www.magiccode-ai.com/images/sr-report/quality-2-speed.jpg)
+![MetalFX Temporal Comparison 2](https://www.magiccode-ai.com/images/sr-report/metalfx-tsr-2.jpg)
+![MetalFX Spatial Comparison 2](https://www.magiccode-ai.com/images/sr-report/quality-2-metalfx.jpg)
+
+### Comparison 3
+
+![SGSR1.0 Comparison 3](https://www.magiccode-ai.com/images/sr-report/sgsr1.0-4.jpg)
+![SGSR2.0 Comparison 3](https://www.magiccode-ai.com/images/sr-report/sgsr2.0-4.jpg)
+![MagicSR HighSpeed Comparison 3](https://www.magiccode-ai.com/images/sr-report/highspeed-4.jpg)
+![MagicSR Speed Comparison 3](https://www.magiccode-ai.com/images/sr-report/speed-4.jpg)
+![MetalFX Spatial Comparison 3](https://www.magiccode-ai.com/images/sr-report/metalfx-4.jpg)
+![MetalFX Temporal Comparison 3](https://www.magiccode-ai.com/images/sr-report/metalfx-tsr-4.jpg)
 
 ## Productization Support
 
-MagicSR is product-ready and supports mainstream mobile GPU backends:
+MagicSR supports mainstream mobile GPU backends:
 
 - Metal
 - Vulkan
 - OpenGLES
 
-It also provides integration support for:
+And provides integration support for:
 
 - Unity plugin
 - Unreal Engine plugin
 
-## Product Download
-
-Download the AI Super-Resolution SDK to evaluate visual quality enhancement and runtime performance in your product pipeline.
-
-Before downloading and using the SDK, please review the Terms of Service and Privacy Policy on the official website.
-
 ## Contact
 
-For customized AI super-resolution solutions and business cooperation, please contact MagicCode:
+For customized AI super-resolution solutions and business cooperation:
 
-- Website: <http://localhost:5173/products/video-super-resolution>
+- Website: [https://www.magiccode-ai.com/](https://www.magiccode-ai.com/)
 
 ---
 
