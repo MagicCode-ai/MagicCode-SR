@@ -46,28 +46,28 @@ To evaluate MagicSR, we compared it with benchmark mobile SR solutions including
 
 ### Comparison 1
 
-![SGSR2.0 Comparison 1](https://www.magiccode-ai.com/images/sr-report/sgsr2.0-1.jpg)
-![MagicSR HighSpeed Comparison 1](https://www.magiccode-ai.com/images/sr-report/quality-1-highspeed.jpg)
-![MagicSR Speed Comparison 1](https://www.magiccode-ai.com/images/sr-report/quality-1-speed.jpg)
-![MetalFX Temporal Comparison 1](https://www.magiccode-ai.com/images/sr-report/metalfx-tsr-1.jpg)
-![MetalFX Spatial Comparison 1](https://www.magiccode-ai.com/images/sr-report/quality-1-metalfx.jpg)
+![SGSR2.0 Comparison 1](README.assets/sgsr2.0-1.jpg)
+![MagicSR HighSpeed Comparison 1](README.assets/quality-1-highspeed.jpg)
+![MagicSR Speed Comparison 1](README.assets/quality-1-speed.jpg)
+![MetalFX Temporal Comparison 1](README.assets/metalfx-tsr-1.jpg)
+![MetalFX Spatial Comparison 1](README.assets/quality-1-metalfx.jpg)
 
 ### Comparison 2
 
-![SGSR2.0 Comparison 2](https://www.magiccode-ai.com/images/sr-report/sgsr2.0-2.jpg)
-![MagicSR HighSpeed Comparison 2](https://www.magiccode-ai.com/images/sr-report/quality-2-highspeed.jpg)
-![MagicSR Speed Comparison 2](https://www.magiccode-ai.com/images/sr-report/quality-2-speed.jpg)
-![MetalFX Temporal Comparison 2](https://www.magiccode-ai.com/images/sr-report/metalfx-tsr-2.jpg)
-![MetalFX Spatial Comparison 2](https://www.magiccode-ai.com/images/sr-report/quality-2-metalfx.jpg)
+![SGSR2.0 Comparison 2](README.assets/sgsr2.0-2.jpg)
+![MagicSR HighSpeed Comparison 2](README.assets/quality-2-highspeed.jpg)
+![MagicSR Speed Comparison 2](README.assets/quality-2-speed.jpg)
+![MetalFX Temporal Comparison 2](README.assets/metalfx-tsr-2.jpg)
+![MetalFX Spatial Comparison 2](README.assets/quality-2-metalfx.jpg)
 
 ### Comparison 3
 
-![SGSR1.0 Comparison 3](https://www.magiccode-ai.com/images/sr-report/sgsr1.0-4.jpg)
-![SGSR2.0 Comparison 3](https://www.magiccode-ai.com/images/sr-report/sgsr2.0-4.jpg)
-![MagicSR HighSpeed Comparison 3](https://www.magiccode-ai.com/images/sr-report/highspeed-4.jpg)
-![MagicSR Speed Comparison 3](https://www.magiccode-ai.com/images/sr-report/speed-4.jpg)
-![MetalFX Spatial Comparison 3](https://www.magiccode-ai.com/images/sr-report/metalfx-4.jpg)
-![MetalFX Temporal Comparison 3](https://www.magiccode-ai.com/images/sr-report/metalfx-tsr-4.jpg)
+![SGSR1.0 Comparison 3](README.assets/sgsr1.0-4.jpg)
+![SGSR2.0 Comparison 3](README.assets/sgsr2.0-4.jpg)
+![MagicSR HighSpeed Comparison 3](README.assets/highspeed-4.jpg)
+![MagicSR Speed Comparison 3](README.assets/speed-4.jpg)
+![MetalFX Spatial Comparison 3](README.assets/metalfx-4.jpg)
+![MetalFX Temporal Comparison 3](README.assets/metalfx-tsr-4.jpg)
 
 ## Productization Support
 
