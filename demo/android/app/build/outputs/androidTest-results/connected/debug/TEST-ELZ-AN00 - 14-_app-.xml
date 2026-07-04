@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="com.example.magiccamera.MagicSrUnityPluginInstrumentedTest" tests="1" failures="0" errors="0" skipped="0" time="4.114" timestamp="2026-07-01T04:23:56" hostname="localhost">
+  <properties>
+    <property name="device" value="ELZ-AN00 - 14" />
+    <property name="flavor" value="" />
+    <property name="project" value=":app" />
+  </properties>
+  <testcase name="androidVulkanImageBatch15xWritesNonBlackOutputs" classname="com.example.magiccamera.MagicSrUnityPluginInstrumentedTest" time="3.314" />
+</testsuite>

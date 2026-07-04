@@ -1,0 +1,245 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:2:1-22:12
+INJECTED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:2:1-22:12
+INJECTED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:2:1-22:12
+INJECTED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:2:1-22:12
+MERGED from [androidx.camera:camera-video:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/07ffba3d8789cb60414360fee8644f72/transformed/camera-video-1.3.4/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.camera:camera-lifecycle:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/cf996117a442e418eccb55f0245cb764/transformed/camera-lifecycle-1.3.4/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.camera:camera-camera2:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/4105c28d1ee54a62ad5c824763f25e7a/transformed/camera-camera2-1.3.4/AndroidManifest.xml:17:1-36:12
+MERGED from [androidx.camera:camera-core:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/437cdc05c7dba42fe3f689893ed7d03e/transformed/camera-core-1.3.4/AndroidManifest.xml:17:1-36:12
+MERGED from [androidx.camera:camera-view:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/3daec1d8939ba655790c7b2c2356d79d/transformed/camera-view-1.3.4/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.appcompat:appcompat-resources:1.6.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/b150a85fd33d7b2d0b29d17e1ff375f9/transformed/appcompat-resources-1.6.1/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.appcompat:appcompat:1.6.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/96bc07c190f515f11fa778c59ea5f05e/transformed/appcompat-1.6.1/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.fragment:fragment:1.3.6] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/22dd77beb92c7f4fe9c1a5df286b0450/transformed/fragment-1.3.6/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.activity:activity:1.6.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/fefbdddf8cbb83fdb2e2a9befb3c9a0f/transformed/activity-1.6.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.drawerlayout:drawerlayout:1.0.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/1844ca87d3afa0974c237e70a4ace3dd/transformed/drawerlayout-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.emoji2:emoji2-views-helper:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/2701d139ecd9d748824aaa2c04cf9531/transformed/emoji2-views-helper-1.2.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.emoji2:emoji2:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/d7732dc91dfff356d067b9bfeac4e1f5/transformed/emoji2-1.2.0/AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/c59a77743c934fd62a57a90ccc795f00/transformed/vectordrawable-animated-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/e51655226252ce65e07cc6f23ba11101/transformed/vectordrawable-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.loader:loader:1.0.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/47527f6591470ec8cf4d4deda7b434db/transformed/loader-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.5.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/0878610d24c0b5446ec91633af0bbefd/transformed/lifecycle-viewmodel-2.5.1/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.5.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/f0916de870815ae690b0f57477065d8f/transformed/lifecycle-viewmodel-savedstate-2.5.1/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.core:core-ktx:1.9.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/f1e2e0a8920c423f049f57ff41d522f9/transformed/core-ktx-1.9.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.viewpager:viewpager:1.0.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/ebe126519014f16664664a03d38c4b62/transformed/viewpager-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.customview:customview:1.0.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/7ef1127d9ae017bf6cc07dedf977aa15/transformed/customview-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.core:core:1.9.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/b284b956f18e17682ae7a89a9185b00a/transformed/core-1.9.0/AndroidManifest.xml:17:1-30:12
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/a994ab3d6cd60478fa262db1f721bfd0/transformed/cursoradapter-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-process:2.4.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/2e5067c6c7aaedb310c98a04af10dfca/transformed/lifecycle-process-2.4.1/AndroidManifest.xml:17:1-37:12
+MERGED from [androidx.lifecycle:lifecycle-runtime:2.5.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/078000cfa3166edce277006f48af53de/transformed/lifecycle-runtime-2.5.1/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.savedstate:savedstate:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/f366038d054180d572f7978fe064c9fb/transformed/savedstate-1.2.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.exifinterface:exifinterface:1.3.2] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/3c4a34b5d2621656ab33fe40466a233c/transformed/exifinterface-1.3.2/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/f77b16b1012bb9ffa9631ca540ef5a06/transformed/startup-runtime-1.1.1/AndroidManifest.xml:17:1-33:12
+MERGED from [androidx.tracing:tracing:1.0.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/08ce823bba99d18c7a9dc1b42ddd6487/transformed/tracing-1.0.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/97d78cb5fc03af9d89d9bfad3bcd449d/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:17:1-27:12
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.1.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/105a4d8e867010a932ad7e36db70bdda/transformed/lifecycle-livedata-2.1.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.5.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/6163ad435b1a2ccf76a35b0d4a68671f/transformed/lifecycle-livedata-core-2.5.1/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.arch.core:core-runtime:2.1.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/db9744c214e66c78b23c1a3ebf43b6b3/transformed/core-runtime-2.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.interpolator:interpolator:1.0.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/06eb8cb970e17ef4e990590ad3542985/transformed/interpolator-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.annotation:annotation-experimental:1.3.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/689a5f90f41c84b5d5d925eb3fd186c1/transformed/annotation-experimental-1.3.1/AndroidManifest.xml:17:1-22:12
+	package
+		INJECTED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml
+	android:versionName
+		INJECTED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml
+	android:versionCode
+		INJECTED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml
+	xmlns:android
+		ADDED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:2:11-69
+uses-permission#android.permission.CAMERA
+ADDED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:4:5-65
+	android:name
+		ADDED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:4:22-62
+uses-feature#android.hardware.camera.any
+ADDED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:5:5-88
+	android:required
+		ADDED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:5:62-85
+	android:name
+		ADDED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:5:19-61
+application
+ADDED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:7:5-20:19
+INJECTED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:7:5-20:19
+MERGED from [androidx.camera:camera-camera2:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/4105c28d1ee54a62ad5c824763f25e7a/transformed/camera-camera2-1.3.4/AndroidManifest.xml:23:5-34:19
+MERGED from [androidx.camera:camera-camera2:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/4105c28d1ee54a62ad5c824763f25e7a/transformed/camera-camera2-1.3.4/AndroidManifest.xml:23:5-34:19
+MERGED from [androidx.camera:camera-core:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/437cdc05c7dba42fe3f689893ed7d03e/transformed/camera-core-1.3.4/AndroidManifest.xml:23:5-34:19
+MERGED from [androidx.camera:camera-core:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/437cdc05c7dba42fe3f689893ed7d03e/transformed/camera-core-1.3.4/AndroidManifest.xml:23:5-34:19
+MERGED from [androidx.emoji2:emoji2:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/d7732dc91dfff356d067b9bfeac4e1f5/transformed/emoji2-1.2.0/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.emoji2:emoji2:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/d7732dc91dfff356d067b9bfeac4e1f5/transformed/emoji2-1.2.0/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.core:core:1.9.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/b284b956f18e17682ae7a89a9185b00a/transformed/core-1.9.0/AndroidManifest.xml:28:5-89
+MERGED from [androidx.core:core:1.9.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/b284b956f18e17682ae7a89a9185b00a/transformed/core-1.9.0/AndroidManifest.xml:28:5-89
+MERGED from [androidx.lifecycle:lifecycle-process:2.4.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/2e5067c6c7aaedb310c98a04af10dfca/transformed/lifecycle-process-2.4.1/AndroidManifest.xml:25:5-35:19
+MERGED from [androidx.lifecycle:lifecycle-process:2.4.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/2e5067c6c7aaedb310c98a04af10dfca/transformed/lifecycle-process-2.4.1/AndroidManifest.xml:25:5-35:19
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/f77b16b1012bb9ffa9631ca540ef5a06/transformed/startup-runtime-1.1.1/AndroidManifest.xml:25:5-31:19
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/f77b16b1012bb9ffa9631ca540ef5a06/transformed/startup-runtime-1.1.1/AndroidManifest.xml:25:5-31:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/97d78cb5fc03af9d89d9bfad3bcd449d/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:24:5-25:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/97d78cb5fc03af9d89d9bfad3bcd449d/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:24:5-25:19
+	android:extractNativeLibs
+		INJECTED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml
+	android:appComponentFactory
+		ADDED from [androidx.core:core:1.9.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/b284b956f18e17682ae7a89a9185b00a/transformed/core-1.9.0/AndroidManifest.xml:28:18-86
+	android:label
+		ADDED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:9:9-41
+	android:allowBackup
+		ADDED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:8:9-36
+	android:theme
+		ADDED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:10:9-40
+activity#com.example.magiccamera.MainActivity
+ADDED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:11:9-19:20
+	android:exported
+		ADDED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:14:13-36
+	android:configChanges
+		ADDED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:13:13-59
+	android:name
+		ADDED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:12:13-41
+intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
+ADDED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:15:13-18:29
+action#android.intent.action.MAIN
+ADDED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:16:17-69
+	android:name
+		ADDED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:16:25-66
+category#android.intent.category.LAUNCHER
+ADDED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:17:17-77
+	android:name
+		ADDED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:17:27-74
+uses-sdk
+INJECTED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml
+INJECTED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml
+MERGED from [androidx.camera:camera-video:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/07ffba3d8789cb60414360fee8644f72/transformed/camera-video-1.3.4/AndroidManifest.xml:5:5-44
+MERGED from [androidx.camera:camera-video:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/07ffba3d8789cb60414360fee8644f72/transformed/camera-video-1.3.4/AndroidManifest.xml:5:5-44
+MERGED from [androidx.camera:camera-lifecycle:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/cf996117a442e418eccb55f0245cb764/transformed/camera-lifecycle-1.3.4/AndroidManifest.xml:5:5-44
+MERGED from [androidx.camera:camera-lifecycle:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/cf996117a442e418eccb55f0245cb764/transformed/camera-lifecycle-1.3.4/AndroidManifest.xml:5:5-44
+MERGED from [androidx.camera:camera-camera2:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/4105c28d1ee54a62ad5c824763f25e7a/transformed/camera-camera2-1.3.4/AndroidManifest.xml:21:5-44
+MERGED from [androidx.camera:camera-camera2:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/4105c28d1ee54a62ad5c824763f25e7a/transformed/camera-camera2-1.3.4/AndroidManifest.xml:21:5-44
+MERGED from [androidx.camera:camera-core:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/437cdc05c7dba42fe3f689893ed7d03e/transformed/camera-core-1.3.4/AndroidManifest.xml:21:5-44
+MERGED from [androidx.camera:camera-core:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/437cdc05c7dba42fe3f689893ed7d03e/transformed/camera-core-1.3.4/AndroidManifest.xml:21:5-44
+MERGED from [androidx.camera:camera-view:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/3daec1d8939ba655790c7b2c2356d79d/transformed/camera-view-1.3.4/AndroidManifest.xml:5:5-44
+MERGED from [androidx.camera:camera-view:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/3daec1d8939ba655790c7b2c2356d79d/transformed/camera-view-1.3.4/AndroidManifest.xml:5:5-44
+MERGED from [androidx.appcompat:appcompat-resources:1.6.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/b150a85fd33d7b2d0b29d17e1ff375f9/transformed/appcompat-resources-1.6.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.appcompat:appcompat-resources:1.6.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/b150a85fd33d7b2d0b29d17e1ff375f9/transformed/appcompat-resources-1.6.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.appcompat:appcompat:1.6.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/96bc07c190f515f11fa778c59ea5f05e/transformed/appcompat-1.6.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.appcompat:appcompat:1.6.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/96bc07c190f515f11fa778c59ea5f05e/transformed/appcompat-1.6.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.fragment:fragment:1.3.6] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/22dd77beb92c7f4fe9c1a5df286b0450/transformed/fragment-1.3.6/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.fragment:fragment:1.3.6] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/22dd77beb92c7f4fe9c1a5df286b0450/transformed/fragment-1.3.6/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.activity:activity:1.6.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/fefbdddf8cbb83fdb2e2a9befb3c9a0f/transformed/activity-1.6.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity:1.6.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/fefbdddf8cbb83fdb2e2a9befb3c9a0f/transformed/activity-1.6.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.drawerlayout:drawerlayout:1.0.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/1844ca87d3afa0974c237e70a4ace3dd/transformed/drawerlayout-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.drawerlayout:drawerlayout:1.0.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/1844ca87d3afa0974c237e70a4ace3dd/transformed/drawerlayout-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.emoji2:emoji2-views-helper:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/2701d139ecd9d748824aaa2c04cf9531/transformed/emoji2-views-helper-1.2.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.emoji2:emoji2-views-helper:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/2701d139ecd9d748824aaa2c04cf9531/transformed/emoji2-views-helper-1.2.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.emoji2:emoji2:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/d7732dc91dfff356d067b9bfeac4e1f5/transformed/emoji2-1.2.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.emoji2:emoji2:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/d7732dc91dfff356d067b9bfeac4e1f5/transformed/emoji2-1.2.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/c59a77743c934fd62a57a90ccc795f00/transformed/vectordrawable-animated-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/c59a77743c934fd62a57a90ccc795f00/transformed/vectordrawable-animated-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/e51655226252ce65e07cc6f23ba11101/transformed/vectordrawable-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/e51655226252ce65e07cc6f23ba11101/transformed/vectordrawable-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.loader:loader:1.0.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/47527f6591470ec8cf4d4deda7b434db/transformed/loader-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.loader:loader:1.0.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/47527f6591470ec8cf4d4deda7b434db/transformed/loader-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.5.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/0878610d24c0b5446ec91633af0bbefd/transformed/lifecycle-viewmodel-2.5.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.5.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/0878610d24c0b5446ec91633af0bbefd/transformed/lifecycle-viewmodel-2.5.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.5.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/f0916de870815ae690b0f57477065d8f/transformed/lifecycle-viewmodel-savedstate-2.5.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.5.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/f0916de870815ae690b0f57477065d8f/transformed/lifecycle-viewmodel-savedstate-2.5.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.core:core-ktx:1.9.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/f1e2e0a8920c423f049f57ff41d522f9/transformed/core-ktx-1.9.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.core:core-ktx:1.9.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/f1e2e0a8920c423f049f57ff41d522f9/transformed/core-ktx-1.9.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.viewpager:viewpager:1.0.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/ebe126519014f16664664a03d38c4b62/transformed/viewpager-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.viewpager:viewpager:1.0.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/ebe126519014f16664664a03d38c4b62/transformed/viewpager-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.customview:customview:1.0.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/7ef1127d9ae017bf6cc07dedf977aa15/transformed/customview-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.customview:customview:1.0.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/7ef1127d9ae017bf6cc07dedf977aa15/transformed/customview-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.core:core:1.9.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/b284b956f18e17682ae7a89a9185b00a/transformed/core-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.core:core:1.9.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/b284b956f18e17682ae7a89a9185b00a/transformed/core-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/a994ab3d6cd60478fa262db1f721bfd0/transformed/cursoradapter-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/a994ab3d6cd60478fa262db1f721bfd0/transformed/cursoradapter-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.4.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/2e5067c6c7aaedb310c98a04af10dfca/transformed/lifecycle-process-2.4.1/AndroidManifest.xml:21:5-23:41
+MERGED from [androidx.lifecycle:lifecycle-process:2.4.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/2e5067c6c7aaedb310c98a04af10dfca/transformed/lifecycle-process-2.4.1/AndroidManifest.xml:21:5-23:41
+MERGED from [androidx.lifecycle:lifecycle-runtime:2.5.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/078000cfa3166edce277006f48af53de/transformed/lifecycle-runtime-2.5.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.lifecycle:lifecycle-runtime:2.5.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/078000cfa3166edce277006f48af53de/transformed/lifecycle-runtime-2.5.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.savedstate:savedstate:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/f366038d054180d572f7978fe064c9fb/transformed/savedstate-1.2.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.savedstate:savedstate:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/f366038d054180d572f7978fe064c9fb/transformed/savedstate-1.2.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.exifinterface:exifinterface:1.3.2] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/3c4a34b5d2621656ab33fe40466a233c/transformed/exifinterface-1.3.2/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.exifinterface:exifinterface:1.3.2] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/3c4a34b5d2621656ab33fe40466a233c/transformed/exifinterface-1.3.2/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/f77b16b1012bb9ffa9631ca540ef5a06/transformed/startup-runtime-1.1.1/AndroidManifest.xml:21:5-23:41
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/f77b16b1012bb9ffa9631ca540ef5a06/transformed/startup-runtime-1.1.1/AndroidManifest.xml:21:5-23:41
+MERGED from [androidx.tracing:tracing:1.0.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/08ce823bba99d18c7a9dc1b42ddd6487/transformed/tracing-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.tracing:tracing:1.0.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/08ce823bba99d18c7a9dc1b42ddd6487/transformed/tracing-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/97d78cb5fc03af9d89d9bfad3bcd449d/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/97d78cb5fc03af9d89d9bfad3bcd449d/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.1.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/105a4d8e867010a932ad7e36db70bdda/transformed/lifecycle-livedata-2.1.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.1.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/105a4d8e867010a932ad7e36db70bdda/transformed/lifecycle-livedata-2.1.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.5.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/6163ad435b1a2ccf76a35b0d4a68671f/transformed/lifecycle-livedata-core-2.5.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.5.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/6163ad435b1a2ccf76a35b0d4a68671f/transformed/lifecycle-livedata-core-2.5.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.arch.core:core-runtime:2.1.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/db9744c214e66c78b23c1a3ebf43b6b3/transformed/core-runtime-2.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.arch.core:core-runtime:2.1.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/db9744c214e66c78b23c1a3ebf43b6b3/transformed/core-runtime-2.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.interpolator:interpolator:1.0.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/06eb8cb970e17ef4e990590ad3542985/transformed/interpolator-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/06eb8cb970e17ef4e990590ad3542985/transformed/interpolator-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.3.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/689a5f90f41c84b5d5d925eb3fd186c1/transformed/annotation-experimental-1.3.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.3.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/689a5f90f41c84b5d5d925eb3fd186c1/transformed/annotation-experimental-1.3.1/AndroidManifest.xml:20:5-44
+	android:targetSdkVersion
+		INJECTED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml
+service#androidx.camera.core.impl.MetadataHolderService
+ADDED from [androidx.camera:camera-camera2:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/4105c28d1ee54a62ad5c824763f25e7a/transformed/camera-camera2-1.3.4/AndroidManifest.xml:24:9-33:19
+MERGED from [androidx.camera:camera-core:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/437cdc05c7dba42fe3f689893ed7d03e/transformed/camera-core-1.3.4/AndroidManifest.xml:29:9-33:78
+MERGED from [androidx.camera:camera-core:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/437cdc05c7dba42fe3f689893ed7d03e/transformed/camera-core-1.3.4/AndroidManifest.xml:29:9-33:78
+	tools:node
+		ADDED from [androidx.camera:camera-camera2:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/4105c28d1ee54a62ad5c824763f25e7a/transformed/camera-camera2-1.3.4/AndroidManifest.xml:29:13-31
+	android:enabled
+		ADDED from [androidx.camera:camera-camera2:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/4105c28d1ee54a62ad5c824763f25e7a/transformed/camera-camera2-1.3.4/AndroidManifest.xml:26:13-36
+	android:exported
+		ADDED from [androidx.camera:camera-camera2:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/4105c28d1ee54a62ad5c824763f25e7a/transformed/camera-camera2-1.3.4/AndroidManifest.xml:27:13-37
+	tools:ignore
+		ADDED from [androidx.camera:camera-camera2:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/4105c28d1ee54a62ad5c824763f25e7a/transformed/camera-camera2-1.3.4/AndroidManifest.xml:28:13-75
+	android:name
+		ADDED from [androidx.camera:camera-camera2:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/4105c28d1ee54a62ad5c824763f25e7a/transformed/camera-camera2-1.3.4/AndroidManifest.xml:25:13-75
+meta-data#androidx.camera.core.impl.MetadataHolderService.DEFAULT_CONFIG_PROVIDER
+ADDED from [androidx.camera:camera-camera2:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/4105c28d1ee54a62ad5c824763f25e7a/transformed/camera-camera2-1.3.4/AndroidManifest.xml:30:13-32:89
+	android:value
+		ADDED from [androidx.camera:camera-camera2:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/4105c28d1ee54a62ad5c824763f25e7a/transformed/camera-camera2-1.3.4/AndroidManifest.xml:32:17-86
+	android:name
+		ADDED from [androidx.camera:camera-camera2:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/4105c28d1ee54a62ad5c824763f25e7a/transformed/camera-camera2-1.3.4/AndroidManifest.xml:31:17-103
+provider#androidx.startup.InitializationProvider
+ADDED from [androidx.emoji2:emoji2:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/d7732dc91dfff356d067b9bfeac4e1f5/transformed/emoji2-1.2.0/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.4.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/2e5067c6c7aaedb310c98a04af10dfca/transformed/lifecycle-process-2.4.1/AndroidManifest.xml:26:9-34:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.4.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/2e5067c6c7aaedb310c98a04af10dfca/transformed/lifecycle-process-2.4.1/AndroidManifest.xml:26:9-34:20
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/f77b16b1012bb9ffa9631ca540ef5a06/transformed/startup-runtime-1.1.1/AndroidManifest.xml:26:9-30:34
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/f77b16b1012bb9ffa9631ca540ef5a06/transformed/startup-runtime-1.1.1/AndroidManifest.xml:26:9-30:34
+	tools:node
+		ADDED from [androidx.emoji2:emoji2:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/d7732dc91dfff356d067b9bfeac4e1f5/transformed/emoji2-1.2.0/AndroidManifest.xml:28:13-31
+	android:authorities
+		ADDED from [androidx.emoji2:emoji2:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/d7732dc91dfff356d067b9bfeac4e1f5/transformed/emoji2-1.2.0/AndroidManifest.xml:26:13-68
+	android:exported
+		ADDED from [androidx.emoji2:emoji2:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/d7732dc91dfff356d067b9bfeac4e1f5/transformed/emoji2-1.2.0/AndroidManifest.xml:27:13-37
+	android:name
+		ADDED from [androidx.emoji2:emoji2:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/d7732dc91dfff356d067b9bfeac4e1f5/transformed/emoji2-1.2.0/AndroidManifest.xml:25:13-67
+meta-data#androidx.emoji2.text.EmojiCompatInitializer
+ADDED from [androidx.emoji2:emoji2:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/d7732dc91dfff356d067b9bfeac4e1f5/transformed/emoji2-1.2.0/AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.emoji2:emoji2:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/d7732dc91dfff356d067b9bfeac4e1f5/transformed/emoji2-1.2.0/AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.emoji2:emoji2:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/d7732dc91dfff356d067b9bfeac4e1f5/transformed/emoji2-1.2.0/AndroidManifest.xml:30:17-75
+permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.9.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/b284b956f18e17682ae7a89a9185b00a/transformed/core-1.9.0/AndroidManifest.xml:22:5-24:47
+	android:protectionLevel
+		ADDED from [androidx.core:core:1.9.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/b284b956f18e17682ae7a89a9185b00a/transformed/core-1.9.0/AndroidManifest.xml:24:9-44
+	android:name
+		ADDED from [androidx.core:core:1.9.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/b284b956f18e17682ae7a89a9185b00a/transformed/core-1.9.0/AndroidManifest.xml:23:9-81
+permission#com.example.magiccamera.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.9.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/b284b956f18e17682ae7a89a9185b00a/transformed/core-1.9.0/AndroidManifest.xml:22:5-24:47
+	android:protectionLevel
+		ADDED from [androidx.core:core:1.9.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/b284b956f18e17682ae7a89a9185b00a/transformed/core-1.9.0/AndroidManifest.xml:24:9-44
+	android:name
+		ADDED from [androidx.core:core:1.9.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/b284b956f18e17682ae7a89a9185b00a/transformed/core-1.9.0/AndroidManifest.xml:23:9-81
+uses-permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.9.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/b284b956f18e17682ae7a89a9185b00a/transformed/core-1.9.0/AndroidManifest.xml:26:5-97
+	android:name
+		ADDED from [androidx.core:core:1.9.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/b284b956f18e17682ae7a89a9185b00a/transformed/core-1.9.0/AndroidManifest.xml:26:22-94
+uses-permission#com.example.magiccamera.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.9.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/b284b956f18e17682ae7a89a9185b00a/transformed/core-1.9.0/AndroidManifest.xml:26:5-97
+	android:name
+		ADDED from [androidx.core:core:1.9.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/b284b956f18e17682ae7a89a9185b00a/transformed/core-1.9.0/AndroidManifest.xml:26:22-94
+meta-data#androidx.lifecycle.ProcessLifecycleInitializer
+ADDED from [androidx.lifecycle:lifecycle-process:2.4.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/2e5067c6c7aaedb310c98a04af10dfca/transformed/lifecycle-process-2.4.1/AndroidManifest.xml:31:13-33:52
+	android:value
+		ADDED from [androidx.lifecycle:lifecycle-process:2.4.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/2e5067c6c7aaedb310c98a04af10dfca/transformed/lifecycle-process-2.4.1/AndroidManifest.xml:33:17-49
+	android:name
+		ADDED from [androidx.lifecycle:lifecycle-process:2.4.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/2e5067c6c7aaedb310c98a04af10dfca/transformed/lifecycle-process-2.4.1/AndroidManifest.xml:32:17-78

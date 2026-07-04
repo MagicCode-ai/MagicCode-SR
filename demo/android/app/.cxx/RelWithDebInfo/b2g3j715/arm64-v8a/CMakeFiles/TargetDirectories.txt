@@ -1,0 +1,3 @@
+/Users/joey/Desktop/work/01.prj/magic/project/demo/android_demo/camera/app/.cxx/RelWithDebInfo/b2g3j715/arm64-v8a/CMakeFiles/superresolution.dir
+/Users/joey/Desktop/work/01.prj/magic/project/demo/android_demo/camera/app/.cxx/RelWithDebInfo/b2g3j715/arm64-v8a/CMakeFiles/edit_cache.dir
+/Users/joey/Desktop/work/01.prj/magic/project/demo/android_demo/camera/app/.cxx/RelWithDebInfo/b2g3j715/arm64-v8a/CMakeFiles/rebuild_cache.dir

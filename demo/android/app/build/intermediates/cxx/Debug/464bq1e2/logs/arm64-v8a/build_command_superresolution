@@ -1,0 +1,4 @@
+/Users/joey/Library/Android/sdk/cmake/3.22.1/bin/ninja \
+  -C \
+  /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/.cxx/Debug/464bq1e2/arm64-v8a \
+  superresolution

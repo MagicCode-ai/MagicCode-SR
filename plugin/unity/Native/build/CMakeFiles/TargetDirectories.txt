@@ -1,0 +1,3 @@
+/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/plugin/unity/Native/build/CMakeFiles/rebuild_cache.dir
+/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/plugin/unity/Native/build/CMakeFiles/edit_cache.dir
+/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/plugin/unity/Native/build/CMakeFiles/magic_sr_unity.dir

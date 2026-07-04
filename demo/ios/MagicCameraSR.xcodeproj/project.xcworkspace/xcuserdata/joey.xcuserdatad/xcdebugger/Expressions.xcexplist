@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VariablesViewState
+   version = "1.0">
+   <ContextStates>
+      <ContextState
+         contextName = "createPipelineState:magic_sr_metal.m">
+         <PersistentStrings>
+            <PersistentString
+               value = "h-&gt;in_texture_type">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "gpu_process:magic_process.c">
+         <PersistentStrings>
+            <PersistentString
+               value = "h-&gt;alg_mode">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "init_params:magic_process.c">
+         <PersistentStrings>
+            <PersistentString
+               value = "h-&gt;requested_scaler_factor">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "high_speed_sr_process:magic_sr_metal.m">
+         <PersistentStrings>
+            <PersistentString
+               value = "handle-&gt;sr_uses_1x_shader">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "ultra_speed_sr_process:magic_sr_metal.m">
+         <PersistentStrings>
+            <PersistentString
+               value = "out_tex.width">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+   </ContextStates>
+</VariablesViewState>

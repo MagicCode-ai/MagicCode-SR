@@ -1,0 +1,104 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.example.magiccamera"
+4    android:versionCode="1"
+5    android:versionName="1.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="26"
+9        android:targetSdkVersion="34" />
+10
+11    <uses-permission android:name="android.permission.CAMERA" />
+11-->/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:4:5-65
+11-->/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:4:22-62
+12
+13    <uses-feature
+13-->/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:5:5-88
+14        android:name="android.hardware.camera.any"
+14-->/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:5:19-61
+15        android:required="true" />
+15-->/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:5:62-85
+16
+17    <permission
+17-->[androidx.core:core:1.9.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/b284b956f18e17682ae7a89a9185b00a/transformed/core-1.9.0/AndroidManifest.xml:22:5-24:47
+18        android:name="com.example.magiccamera.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+18-->[androidx.core:core:1.9.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/b284b956f18e17682ae7a89a9185b00a/transformed/core-1.9.0/AndroidManifest.xml:23:9-81
+19        android:protectionLevel="signature" />
+19-->[androidx.core:core:1.9.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/b284b956f18e17682ae7a89a9185b00a/transformed/core-1.9.0/AndroidManifest.xml:24:9-44
+20
+21    <uses-permission android:name="com.example.magiccamera.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+21-->[androidx.core:core:1.9.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/b284b956f18e17682ae7a89a9185b00a/transformed/core-1.9.0/AndroidManifest.xml:26:5-97
+21-->[androidx.core:core:1.9.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/b284b956f18e17682ae7a89a9185b00a/transformed/core-1.9.0/AndroidManifest.xml:26:22-94
+22
+23    <application
+23-->/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:7:5-20:19
+24        android:allowBackup="false"
+24-->/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:8:9-36
+25        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+25-->[androidx.core:core:1.9.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/b284b956f18e17682ae7a89a9185b00a/transformed/core-1.9.0/AndroidManifest.xml:28:18-86
+26        android:debuggable="true"
+27        android:extractNativeLibs="false"
+28        android:label="@string/app_name"
+28-->/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:9:9-41
+29        android:theme="@style/AppTheme" >
+29-->/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:10:9-40
+30        <activity
+30-->/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:11:9-19:20
+31            android:name="com.example.magiccamera.MainActivity"
+31-->/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:12:13-41
+32            android:configChanges="orientation|screenSize"
+32-->/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:13:13-59
+33            android:exported="true" >
+33-->/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:14:13-36
+34            <intent-filter>
+34-->/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:15:13-18:29
+35                <action android:name="android.intent.action.MAIN" />
+35-->/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:16:17-69
+35-->/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:16:25-66
+36
+37                <category android:name="android.intent.category.LAUNCHER" />
+37-->/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:17:17-77
+37-->/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/AndroidManifest.xml:17:27-74
+38            </intent-filter>
+39        </activity>
+40
+41        <service
+41-->[androidx.camera:camera-camera2:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/4105c28d1ee54a62ad5c824763f25e7a/transformed/camera-camera2-1.3.4/AndroidManifest.xml:24:9-33:19
+42            android:name="androidx.camera.core.impl.MetadataHolderService"
+42-->[androidx.camera:camera-camera2:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/4105c28d1ee54a62ad5c824763f25e7a/transformed/camera-camera2-1.3.4/AndroidManifest.xml:25:13-75
+43            android:enabled="false"
+43-->[androidx.camera:camera-camera2:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/4105c28d1ee54a62ad5c824763f25e7a/transformed/camera-camera2-1.3.4/AndroidManifest.xml:26:13-36
+44            android:exported="false" >
+44-->[androidx.camera:camera-camera2:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/4105c28d1ee54a62ad5c824763f25e7a/transformed/camera-camera2-1.3.4/AndroidManifest.xml:27:13-37
+45            <meta-data
+45-->[androidx.camera:camera-camera2:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/4105c28d1ee54a62ad5c824763f25e7a/transformed/camera-camera2-1.3.4/AndroidManifest.xml:30:13-32:89
+46                android:name="androidx.camera.core.impl.MetadataHolderService.DEFAULT_CONFIG_PROVIDER"
+46-->[androidx.camera:camera-camera2:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/4105c28d1ee54a62ad5c824763f25e7a/transformed/camera-camera2-1.3.4/AndroidManifest.xml:31:17-103
+47                android:value="androidx.camera.camera2.Camera2Config$DefaultProvider" />
+47-->[androidx.camera:camera-camera2:1.3.4] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/4105c28d1ee54a62ad5c824763f25e7a/transformed/camera-camera2-1.3.4/AndroidManifest.xml:32:17-86
+48        </service>
+49
+50        <provider
+50-->[androidx.emoji2:emoji2:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/d7732dc91dfff356d067b9bfeac4e1f5/transformed/emoji2-1.2.0/AndroidManifest.xml:24:9-32:20
+51            android:name="androidx.startup.InitializationProvider"
+51-->[androidx.emoji2:emoji2:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/d7732dc91dfff356d067b9bfeac4e1f5/transformed/emoji2-1.2.0/AndroidManifest.xml:25:13-67
+52            android:authorities="com.example.magiccamera.androidx-startup"
+52-->[androidx.emoji2:emoji2:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/d7732dc91dfff356d067b9bfeac4e1f5/transformed/emoji2-1.2.0/AndroidManifest.xml:26:13-68
+53            android:exported="false" >
+53-->[androidx.emoji2:emoji2:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/d7732dc91dfff356d067b9bfeac4e1f5/transformed/emoji2-1.2.0/AndroidManifest.xml:27:13-37
+54            <meta-data
+54-->[androidx.emoji2:emoji2:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/d7732dc91dfff356d067b9bfeac4e1f5/transformed/emoji2-1.2.0/AndroidManifest.xml:29:13-31:52
+55                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+55-->[androidx.emoji2:emoji2:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/d7732dc91dfff356d067b9bfeac4e1f5/transformed/emoji2-1.2.0/AndroidManifest.xml:30:17-75
+56                android:value="androidx.startup" />
+56-->[androidx.emoji2:emoji2:1.2.0] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/d7732dc91dfff356d067b9bfeac4e1f5/transformed/emoji2-1.2.0/AndroidManifest.xml:31:17-49
+57            <meta-data
+57-->[androidx.lifecycle:lifecycle-process:2.4.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/2e5067c6c7aaedb310c98a04af10dfca/transformed/lifecycle-process-2.4.1/AndroidManifest.xml:31:13-33:52
+58                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+58-->[androidx.lifecycle:lifecycle-process:2.4.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/2e5067c6c7aaedb310c98a04af10dfca/transformed/lifecycle-process-2.4.1/AndroidManifest.xml:32:17-78
+59                android:value="androidx.startup" />
+59-->[androidx.lifecycle:lifecycle-process:2.4.1] /Users/joey/.gradle/caches/9.0-milestone-1/transforms/2e5067c6c7aaedb310c98a04af10dfca/transformed/lifecycle-process-2.4.1/AndroidManifest.xml:33:17-49
+60        </provider>
+61    </application>
+62
+63</manifest>

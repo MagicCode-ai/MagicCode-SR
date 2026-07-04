@@ -1,0 +1,113 @@
+#version 450
+
+layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+
+layout(binding = 0) uniform sampler2D uInputTex;
+layout(binding = 1, rgba8) writeonly uniform image2D uOutputTex;
+
+layout(push_constant) uniform PushParams {
+    uint inW;
+    uint inH;
+    uint outW;
+    uint outH;
+} pc;
+
+#define OperationMode 1
+#define EdgeThreshold (8.0 / 255.0)
+#define EdgeSharpness 2.0
+
+float fastLanczos2(float x) {
+    float wA = x - 4.0;
+    float wB = x * wA - wA;
+    wA *= wA;
+    return wB * wA;
+}
+
+vec2 weightY(float dx, float dy, float c, float data) {
+    float x = ((dx * dx) + (dy * dy)) * 0.55 + clamp(abs(c) * data, 0.0, 1.0);
+    float w = fastLanczos2(x);
+    return vec2(w, w * c);
+}
+
+void main() {
+    uvec2 gid = gl_GlobalInvocationID.xy;
+    if (gid.x >= pc.outW || gid.y >= pc.outH) return;
+
+    vec2 outSize = vec2(float(pc.outW), float(pc.outH));
+    vec2 uv = (vec2(gid) + vec2(0.5)) / outSize;
+
+    vec4 viewportInfo = vec4(1.0 / float(pc.inW), 1.0 / float(pc.inH), float(pc.inW), float(pc.inH));
+
+    int mode = OperationMode;
+    float edgeThreshold = EdgeThreshold;
+    float edgeSharpness = EdgeSharpness;
+
+    vec4 color;
+    if (mode == 1) {
+        color.xyz = textureLod(uInputTex, uv, 0.0).xyz;
+    } else {
+        color.xyzw = textureLod(uInputTex, uv, 0.0).xyzw;
+    }
+
+    float xCenter = abs(uv.x - 0.5);
+    float yCenter = abs(uv.y - 0.5);
+    if (xCenter >= 0.0 || yCenter >= 0.0) {
+        // Keep behavior aligned with official shader branch structure.
+    }
+
+    if (mode != 4) {
+        vec2 imgCoord = (uv * viewportInfo.zw) + vec2(-0.5, 0.5);
+        vec2 imgCoordPixel = floor(imgCoord);
+        vec2 coord = imgCoordPixel * viewportInfo.xy;
+        vec2 pl = imgCoord - imgCoordPixel;
+
+        vec4 left = textureGather(uInputTex, coord, OperationMode);
+        float edgeVote = abs(left.z - left.y) + abs(color[mode] - left.y) + abs(color[mode] - left.z);
+        if (edgeVote > edgeThreshold) {
+            coord.x += viewportInfo.x;
+            vec4 right = textureGather(uInputTex, coord + vec2(viewportInfo.x, 0.0), OperationMode);
+            vec4 upDown;
+            upDown.xy = textureGather(uInputTex, coord + vec2(0.0, -viewportInfo.y), OperationMode).wz;
+            upDown.zw = textureGather(uInputTex, coord + vec2(0.0, viewportInfo.y), OperationMode).yx;
+
+            float mean = (left.y + left.z + right.x + right.w) * 0.25;
+            left = left - vec4(mean);
+            right = right - vec4(mean);
+            upDown = upDown - vec4(mean);
+            color.w = color[mode] - mean;
+
+            float sum =
+                ((((abs(left.x) + abs(left.y)) + abs(left.z)) + abs(left.w)) +
+                 (((abs(right.x) + abs(right.y)) + abs(right.z)) + abs(right.w))) +
+                (((abs(upDown.x) + abs(upDown.y)) + abs(upDown.z)) + abs(upDown.w));
+
+            float std = 2.181818 / sum;
+
+            vec2 aWY = weightY(pl.x,     pl.y + 1.0, upDown.x, std);
+            aWY +=    weightY(pl.x - 1.0, pl.y + 1.0, upDown.y, std);
+            aWY +=    weightY(pl.x - 1.0, pl.y - 2.0, upDown.z, std);
+            aWY +=    weightY(pl.x,     pl.y - 2.0, upDown.w, std);
+            aWY +=    weightY(pl.x + 1.0, pl.y - 1.0, left.x, std);
+            aWY +=    weightY(pl.x,     pl.y - 1.0, left.y, std);
+            aWY +=    weightY(pl.x,     pl.y,       left.z, std);
+            aWY +=    weightY(pl.x + 1.0, pl.y,       left.w, std);
+            aWY +=    weightY(pl.x - 1.0, pl.y - 1.0, right.x, std);
+            aWY +=    weightY(pl.x - 2.0, pl.y - 1.0, right.y, std);
+            aWY +=    weightY(pl.x - 2.0, pl.y,       right.z, std);
+            aWY +=    weightY(pl.x - 1.0, pl.y,       right.w, std);
+
+            float finalY = aWY.y / aWY.x;
+            float maxY = max(max(left.y, left.z), max(right.x, right.w));
+            float minY = min(min(left.y, left.z), min(right.x, right.w));
+            finalY = clamp(edgeSharpness * finalY, minY, maxY);
+            float deltaY = finalY - color.w;
+            deltaY = clamp(deltaY, -23.0 / 255.0, 23.0 / 255.0);
+            color.x = clamp(color.x + deltaY, 0.0, 1.0);
+            color.y = clamp(color.y + deltaY, 0.0, 1.0);
+            color.z = clamp(color.z + deltaY, 0.0, 1.0);
+        }
+    }
+
+    color.w = 1.0;
+    imageStore(uOutputTex, ivec2(gid), color);
+}

@@ -1,0 +1,10 @@
+#Tue Jun 30 12:11:37 CST 2026
+base.0=/Users/joey/Desktop/work/01.prj/magic/project/demo/android_demo/camera/app/build/intermediates/dex/debugAndroidTest/mergeExtDexDebugAndroidTest/classes.dex
+base.1=/Users/joey/Desktop/work/01.prj/magic/project/demo/android_demo/camera/app/build/intermediates/dex/debugAndroidTest/mergeProjectDexDebugAndroidTest/0/classes.dex
+base.2=/Users/joey/Desktop/work/01.prj/magic/project/demo/android_demo/camera/app/build/intermediates/dex/debugAndroidTest/mergeProjectDexDebugAndroidTest/5/classes.dex
+path.0=classes.dex
+path.1=0/classes.dex
+path.2=5/classes.dex
+renamed.0=classes.dex
+renamed.1=classes2.dex
+renamed.2=classes3.dex
