@@ -46,41 +46,54 @@ To evaluate MagicSR, we compared it with benchmark mobile SR solutions including
 
 ### Comparison 1
 
-| SGSR1.0 | SGSR2.0 | MagicSR HighSpeed |
-| --- | --- | --- |
-| ![SGSR1.0 Comparison 1](README.assets/quality-1-sgsr.jpg) | ![SGSR2.0 Comparison 1](README.assets/sgsr2.0-1.jpg) | ![MagicSR HighSpeed Comparison 1](README.assets/quality-1-highspeed.jpg) |
+| SGSR1.0 | SGSR2.0 |
+| --- | --- |
+| <img src="README.assets/quality-1-sgsr.jpg" width="440" alt="SGSR1.0 Comparison 1" /> | <img src="README.assets/sgsr2.0-1.jpg" width="440" alt="SGSR2.0 Comparison 1" /> |
 
-| MagicSR Speed | MetalFX Spatial | MetalFX Temporal |
-| --- | --- | --- |
-| ![MagicSR Speed Comparison 1](README.assets/quality-1-speed.jpg) | ![MetalFX Spatial Comparison 1](README.assets/quality-1-metalfx.jpg) | ![MetalFX Temporal Comparison 1](README.assets/metalfx-tsr-1.jpg) |
+| MagicSR HighSpeed | MagicSR Speed |
+| --- | --- |
+| <img src="README.assets/quality-1-highspeed.jpg" width="440" alt="MagicSR HighSpeed Comparison 1" /> | <img src="README.assets/quality-1-speed.jpg" width="440" alt="MagicSR Speed Comparison 1" /> |
+
+| MetalFX Spatial | MetalFX Temporal |
+| --- | --- |
+| <img src="README.assets/quality-1-metalfx.jpg" width="440" alt="MetalFX Spatial Comparison 1" /> | <img src="README.assets/metalfx-tsr-1.jpg" width="440" alt="MetalFX Temporal Comparison 1" /> |
 
 ### Comparison 2
 
-| SGSR1.0 | SGSR2.0 | MagicSR HighSpeed |
-| --- | --- | --- |
-| ![SGSR1.0 Comparison 2](README.assets/quality-2-sgsr.jpg) | ![SGSR2.0 Comparison 2](README.assets/sgsr2.0-2.jpg) | ![MagicSR HighSpeed Comparison 2](README.assets/quality-2-highspeed.jpg) |
+| SGSR1.0 | SGSR2.0 |
+| --- | --- |
+| <img src="README.assets/quality-2-sgsr.jpg" width="440" alt="SGSR1.0 Comparison 2" /> | <img src="README.assets/sgsr2.0-2.jpg" width="440" alt="SGSR2.0 Comparison 2" /> |
 
-| MagicSR Speed | MetalFX Spatial | MetalFX Temporal |
-| --- | --- | --- |
-| ![MagicSR Speed Comparison 2](README.assets/quality-2-speed.jpg) | ![MetalFX Spatial Comparison 2](README.assets/quality-2-metalfx.jpg) | ![MetalFX Temporal Comparison 2](README.assets/metalfx-tsr-2.jpg) |
+| MagicSR HighSpeed | MagicSR Speed |
+| --- | --- |
+| <img src="README.assets/quality-2-highspeed.jpg" width="440" alt="MagicSR HighSpeed Comparison 2" /> | <img src="README.assets/quality-2-speed.jpg" width="440" alt="MagicSR Speed Comparison 2" /> |
+
+| MetalFX Spatial | MetalFX Temporal |
+| --- | --- |
+| <img src="README.assets/quality-2-metalfx.jpg" width="440" alt="MetalFX Spatial Comparison 2" /> | <img src="README.assets/metalfx-tsr-2.jpg" width="440" alt="MetalFX Temporal Comparison 2" /> |
 
 ### Comparison 3
 
-| SGSR1.0 | SGSR2.0 | MagicSR HighSpeed |
-| --- | --- | --- |
-| ![SGSR1.0 Comparison 3](README.assets/sgsr1.0-4.jpg) | ![SGSR2.0 Comparison 3](README.assets/sgsr2.0-4.jpg) | ![MagicSR HighSpeed Comparison 3](README.assets/highspeed-4.jpg) |
+| SGSR1.0 | SGSR2.0 |
+| --- | --- |
+| <img src="README.assets/sgsr1.0-4.jpg" width="440" alt="SGSR1.0 Comparison 3" /> | <img src="README.assets/sgsr2.0-4.jpg" width="440" alt="SGSR2.0 Comparison 3" /> |
 
-| MagicSR Speed | MetalFX Spatial | MetalFX Temporal |
-| --- | --- | --- |
-| ![MagicSR Speed Comparison 3](README.assets/speed-4.jpg) | ![MetalFX Spatial Comparison 3](README.assets/metalfx-4.jpg) | ![MetalFX Temporal Comparison 3](README.assets/metalfx-tsr-4.jpg) |
+| MagicSR HighSpeed | MagicSR Speed |
+| --- | --- |
+| <img src="README.assets/highspeed-4.jpg" width="440" alt="MagicSR HighSpeed Comparison 3" /> | <img src="README.assets/speed-4.jpg" width="440" alt="MagicSR Speed Comparison 3" /> |
+
+| MetalFX Spatial | MetalFX Temporal |
+| --- | --- |
+| <img src="README.assets/metalfx-4.jpg" width="440" alt="MetalFX Spatial Comparison 3" /> | <img src="README.assets/metalfx-tsr-4.jpg" width="440" alt="MetalFX Temporal Comparison 3" /> |
 
 ## Productization Support
 
-MagicSR supports mainstream mobile GPU backends:
+MagicSR supports mainstream  GPU backends:
 
 - Metal
 - Vulkan
 - OpenGLES
+- OpenGL
 
 And provides integration support for:
 
