@@ -90,8 +90,10 @@ To evaluate MagicSR, we compared it with benchmark mobile SR solutions including
 
 ## Productization Support
 
-MagicSR supports mainstream  GPU backends:
+MagicSR supports mainstream CPU and GPU backends:
 
+- X86 SIMD
+- Neon
 - Metal
 - Vulkan
 - OpenGLES
