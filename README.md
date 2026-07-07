@@ -104,12 +104,22 @@ And provides integration support for:
 - Unity plugin (supports Unity 2022.3.62f2c1)
 - Unreal Engine plugin (supports UE 5.0, 5.1, 5.2, 5.3, 5.4, 5.6, 5.7, 5.8)
 
+## License
+
+MagicSR is **free to download and use** under the [End User License Agreement (EULA) v1.1.0](doc/MagicCode%20Super-Resolution%20Software%20End%20User%20License%20Agreement%20(EULA)%20v1.1.0.pdf).
+
+The EULA grants a no-charge license to the Software itself. **Professional services** — such as integration assistance, custom development, consulting, training, priority support, and SLA commitments — are **not included** in the free Software license and require a separate paid Services Agreement.
+
+Community feedback may be submitted via GitHub Issues on an as-is basis without guaranteed response times.
+
+Related legal documents are available in the [`doc/`](doc/) directory, including the Privacy Policy and Data Reporting Notice.
+
 ## Contact
 
-For customized AI super-resolution solutions and business cooperation:
-
-- Website: [https://www.magiccode-ai.com/](https://www.magiccode-ai.com/)
+- **Website:** [https://www.magiccode-ai.com/](https://www.magiccode-ai.com/)
+- **Software download and documentation:** this repository
+- **Professional services and business cooperation:** contact us through the official website
 
 ---
 
-© 2024 MagicCode Technology Limited. All rights reserved.
+© 2026 MagicCode Technology Limited. All rights reserved.
