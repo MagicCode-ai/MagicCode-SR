@@ -76,6 +76,16 @@ To evaluate MagicSR, we compared it with benchmark mobile SR solutions including
 | **MetalFX Spatial** | **MetalFX Temporal** |
 | <img src="README.assets/metalfx-4.jpg" width="880" alt="MetalFX Spatial Comparison 3" /> | <img src="README.assets/metalfx-tsr-4.jpg" width="880" alt="MetalFX Temporal Comparison 3" /> |
 
+## MagicSR Speed vs Apple MetalFx
+
+Side-by-side real-time 2× super-resolution in a 3D game on **iPhone 14 Pro**. Both pipelines render at **1920×1080** and upscale to **3840×2160**.
+
+| Left — MagicSR Speed 2× | Right — MetalFX 2× |
+| --- | --- |
+| ~59.7 FPS, ~4.3 ms SR | ~36.6 FPS, ~14.6 ms SR |
+
+<video src="README.assets/compare_magic_speed_vs_metalfx_2x_latest.mp4" controls width="880"></video>
+
 ## Productization Support
 
 MagicSR supports mainstream CPU and GPU backends:
