@@ -84,7 +84,11 @@ Side-by-side real-time 2× super-resolution in a 3D game on **iPhone 14 Pro**. B
 | --- | --- |
 | ~59.7 FPS, ~4.3 ms SR | ~36.6 FPS, ~14.6 ms SR |
 
-<video src="README.assets/compare_magic_speed_vs_metalfx_2x_latest.mp4" controls width="880"></video>
+<a href="https://github.com/MagicCode-ai/SuperResolution/raw/main/README.assets/compare_magic_speed_vs_metalfx_2x_latest.mp4">
+  <img src="README.assets/compare_magic_speed_vs_metalfx_2x_preview.gif" width="880" alt="MagicSR Speed vs Apple MetalFx — side-by-side 2x super-resolution demo">
+</a>
+
+[**▶ Watch full video (MP4)**](https://github.com/MagicCode-ai/SuperResolution/raw/main/README.assets/compare_magic_speed_vs_metalfx_2x_latest.mp4)
 
 ## Productization Support
 
