@@ -92,13 +92,13 @@ Side-by-side real-time 2× super-resolution in a 3D game on **iPhone 14 Pro**. B
 
 ## Game Demo: Original Res vs Low Res+MagicSR
 
-In-game clip with on-screen HUD comparing the original stream against MagicSR enhancement.
+In-game clip with on-screen HUD comparing the original stream against MagicSR.
 
-<a href="https://github.com/MagicCode-ai/SuperResolution/raw/main/README.assets/game_sanjiaozhou_16-26s_vs_magicsr_clip_hud.mp4">
-  <img src="README.assets/game_sanjiaozhou_16-26s_vs_magicsr_clip_hud_preview.gif" width="880" alt="Sanjiaozhou game clip vs MagicSR with HUD">
+<a href="https://github.com/MagicCode-ai/SuperResolution/raw/main/README.assets/game_16-26s_vs_magicsr_clip_hud.mp4">
+  <img src="README.assets/game_16-26s_vs_magicsr_clip_hud_preview.gif" width="880" alt="Original Res vs Low Res+MagicSR game clip with HUD">
 </a>
 
-[**▶ Watch full video (MP4)**](https://github.com/MagicCode-ai/SuperResolution/raw/main/README.assets/game_sanjiaozhou_16-26s_vs_magicsr_clip_hud.mp4)
+[**▶ Watch full video (MP4)**](https://github.com/MagicCode-ai/SuperResolution/raw/main/README.assets/game_16-26s_vs_magicsr_clip_hud.mp4)
 
 ## Productization Support
 
