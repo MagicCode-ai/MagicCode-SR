@@ -90,6 +90,16 @@ Side-by-side real-time 2× super-resolution in a 3D game on **iPhone 14 Pro**. B
 | **MetalFX Spatial** | **MetalFX Temporal** |
 | <img src="README.assets/metalfx-4.jpg" width="880" alt="MetalFX Spatial Comparison 3" /> | <img src="README.assets/metalfx-tsr-4.jpg" width="880" alt="MetalFX Temporal Comparison 3" /> |
 
+## Game Demo: Original Res vs Low Res+MagicSR
+
+In-game clip with on-screen HUD comparing the original stream against MagicSR enhancement.
+
+<a href="https://github.com/MagicCode-ai/SuperResolution/raw/main/README.assets/game_sanjiaozhou_16-26s_vs_magicsr_clip_hud.mp4">
+  <img src="README.assets/game_sanjiaozhou_16-26s_vs_magicsr_clip_hud_preview.gif" width="880" alt="Sanjiaozhou game clip vs MagicSR with HUD">
+</a>
+
+[**▶ Watch full video (MP4)**](https://github.com/MagicCode-ai/SuperResolution/raw/main/README.assets/game_sanjiaozhou_16-26s_vs_magicsr_clip_hud.mp4)
+
 ## Productization Support
 
 MagicSR supports mainstream CPU and GPU backends:
