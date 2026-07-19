@@ -13,6 +13,7 @@
 #include "Modules/ModuleManager.h"
 
 #if MAGIC_SR_IOS
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -21,6 +22,7 @@
 extern "C" {
 #include "mc_interface.h"
 int MagicSR_RunIOSMetalSmoke(const char* ModelPath, const char* OutputDir, char* OutReport, size_t OutReportSize);
+int MagicSR_RunIOSEnableSmoke(const char* ModelPath, char* OutReport, size_t OutReportSize);
 }
 #endif
 
@@ -180,9 +182,11 @@ void RunIOSSmokeTestIfRequested()
     ModelPath = NormalizeIOSPathForMagicSR(ModelPath);
 
     {
-        char Report[1024] = {};
         FTCHARToUTF8 MetalModelPathUtf8(*ModelPath);
         FTCHARToUTF8 OutputDirUtf8(*OutputDir);
+
+        // Run CreateSession/Process first so Enable's session cache cannot affect it.
+        char Report[1024] = {};
         const int32 MetalRet = MagicSR_RunIOSMetalSmoke(MetalModelPathUtf8.Get(), OutputDirUtf8.Get(), Report, sizeof(Report));
         const bool bMetalPass = MetalRet == 0;
         if (bMetalPass)
@@ -203,7 +207,23 @@ void RunIOSSmokeTestIfRequested()
                    *ModelPath,
                    UTF8_TO_TCHAR(Report));
         }
-        FPlatformMisc::RequestExitWithStatus(false, bMetalPass ? 0 : 1, TEXT("MagicSR iOS Metal smoke complete"));
+        fprintf(stderr, "[MagicSRUESmoke] result=%s %s\n", bMetalPass ? "PASS" : "FAIL", Report);
+
+        char EnableReport[512] = {};
+        const int32 EnableRet = MagicSR_RunIOSEnableSmoke(MetalModelPathUtf8.Get(), EnableReport, sizeof(EnableReport));
+        const bool bEnablePass = EnableRet == 0;
+        if (bEnablePass)
+        {
+            UE_LOG(LogTemp, Display, TEXT("[MagicSREnableSmoke] result=PASS %s"), UTF8_TO_TCHAR(EnableReport));
+        }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("[MagicSREnableSmoke] result=FAIL %s"), UTF8_TO_TCHAR(EnableReport));
+        }
+        fprintf(stderr, "[MagicSREnableSmoke] result=%s %s\n", bEnablePass ? "PASS" : "FAIL", EnableReport);
+
+        const bool bAllPass = bMetalPass && bEnablePass;
+        FPlatformMisc::RequestExitWithStatus(false, bAllPass ? 0 : 1, TEXT("MagicSR iOS smoke complete"));
     }
 }
 

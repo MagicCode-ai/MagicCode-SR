@@ -2,13 +2,15 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${ROOT}/.." && pwd)"
 ANDROID_DIR="${ROOT}/android"
 GRADLEW="${ANDROID_DIR}/gradlew"
 ASSETS_MODEL_DIR="${ANDROID_DIR}/app/src/main/assets/model"
-MODEL_DIR="${ROOT}/../model"
-ANDROID_LIB_DIR="${ROOT}/../lib/android"
-IOS_LIB_DIR="${ROOT}/../lib/ios"
-HEADER_DIR="${ROOT}/../header"
+MODEL_DIR="${REPO_ROOT}/model"
+ANDROID_LIB_DIR="${REPO_ROOT}/lib/android"
+IOS_LIB_DIR="${REPO_ROOT}/lib/ios"
+INTERFACE_DIR="${REPO_ROOT}/interface"
+PACKAGES_DIR="${ANDROID_DIR}/packages"
 
 require_file() {
   local file="$1"
@@ -18,7 +20,8 @@ require_file() {
   fi
 }
 
-echo "[INFO] Root: ${ROOT}"
+echo "[INFO] Demo root: ${ROOT}"
+echo "[INFO] Repo root: ${REPO_ROOT}"
 
 if [[ ! -f "${GRADLEW}" ]]; then
   echo "[ERROR] gradlew not found: ${GRADLEW}" >&2
@@ -27,7 +30,8 @@ fi
 
 require_file "${ANDROID_LIB_DIR}/libmagic_sr.a"
 require_file "${IOS_LIB_DIR}/libmagic_sr.a"
-require_file "${HEADER_DIR}/mc_interface.h"
+require_file "${INTERFACE_DIR}/mc_interface.h"
+require_file "${INTERFACE_DIR}/mc_enable.h"
 
 require_file "${MODEL_DIR}/magic_gles_highspeed_gpu_params.bin"
 require_file "${MODEL_DIR}/magic_gles_speed_gpu_params.bin"
@@ -35,6 +39,7 @@ require_file "${MODEL_DIR}/magic_metal_highspeed_gpu_params.bin"
 require_file "${MODEL_DIR}/magic_metal_speed_gpu_params.bin"
 
 mkdir -p "${ASSETS_MODEL_DIR}"
+mkdir -p "${PACKAGES_DIR}"
 
 echo "[INFO] Copying Android model files..."
 cp -f "${MODEL_DIR}/magic_gles_highspeed_gpu_params.bin" "${ASSETS_MODEL_DIR}/"
@@ -47,7 +52,12 @@ echo "[INFO] Building Android Debug APK..."
   ./gradlew :app:assembleDebug
 )
 
+APK_SRC="${ANDROID_DIR}/app/build/outputs/apk/debug/app-debug.apk"
+APK_DST="${PACKAGES_DIR}/MagicMagnifierSR-android-arm64.apk"
+cp -f "${APK_SRC}" "${APK_DST}"
+
 echo
 echo "[SUCCESS] Android build complete."
-echo "[SUCCESS] APK: ${ANDROID_DIR}/app/build/outputs/apk/debug/app-debug.apk"
-echo "[INFO] iOS build should be done on macOS via Xcode (see README.md)."
+echo "[SUCCESS] APK: ${APK_DST}"
+echo "[INFO] Install: adb install -r \"${APK_DST}\""
+echo "[INFO] iOS: open demo/ios/MagicCameraSR.xcodeproj, or see README for packaging notes."

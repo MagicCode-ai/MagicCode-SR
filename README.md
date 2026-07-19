@@ -116,6 +116,25 @@ And provides integration support for:
 - Unity plugin (supports Unity 2022.3.62f2c1)
 - Unreal Engine plugin (supports UE 5.0, 5.1, 5.2, 5.3, 5.4, 5.6, 5.7, 5.8)
 
+## Quick Start
+
+Integrate MagicSR with about three lines of code via the Enable API: pass an input texture and scale, use the returned output, then call Disable when finished.
+
+```c
+void* output = MC_Enable(input, scale);  // use output
+MC_Disable(output);
+```
+
+Unity / Unreal plugins follow the same flow as `Enable(input, scale)` / `Disable()`.
+
+<a href="README.assets/MagicSR_3Line_Integration.mp4">
+  <img src="README.assets/MagicSR_3Line_Integration.gif" width="880" alt="MagicSR 3-line integration tutorial">
+</a>
+
+[**▶ Watch full tutorial (MP4)**](README.assets/MagicSR_3Line_Integration.mp4)
+
+For full details, see the [User Guide](doc/User_Guide.md).
+
 ## License
 
 MagicSR is **free to download and use** under the [End User License Agreement (EULA) v1.1.0](doc/MagicCode%20Super-Resolution%20Software%20End%20User%20License%20Agreement%20(EULA)%20v1.1.0.pdf).

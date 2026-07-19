@@ -1,10 +1,14 @@
 # MagicSR Unity Android Plugin (Stage 1)
 
+## Documentation
+
+- Full usage manual: `plugin/unity/USAGE_GUIDE.md`
+
 ## Layout
 
 - `Native/`: Android native wrapper (`libmagic_sr_unity.so`)
 - `CSharp/`: Unity C# wrapper and realtime sample behavior
-- `Samples/AndroidSmokeTest/`: minimal Unity Android project for real Unity Player validation
+- `Samples/AndroidSmokeTest/`: minimal Unity sample project
 - `tests/`: build verification scripts and reports
 
 ## Build native library
@@ -26,21 +30,11 @@ bash verify_android_build.sh
 
 This generates `plugin/unity/tests/verification_report.md`.
 
-## Unity Android smoke test
+## Validation
 
-Use the sample project to verify the plugin inside a real Unity Android Player:
+For runtime validation workflow and troubleshooting, see:
 
-```bash
-cd plugin/unity/Samples/AndroidSmokeTest
-UNITY_BIN="/Applications/Unity/Hub/Editor/<version>/Unity.app/Contents/MacOS/Unity" \
-./build_and_run_android_smoke.sh
-```
-
-The script builds `libmagic_sr_unity.so`, copies C# bindings and the native plugin into the sample Unity project, builds an APK, installs it on a connected Android device, and waits for:
-
-```text
-[MagicSRUnitySmoke] result=PASS
-```
+- `plugin/unity/USAGE_GUIDE.md`
 
 ## Unity integration quick notes
 

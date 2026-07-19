@@ -5,30 +5,16 @@
 #endif
 
 #include "/Users/joey/Desktop/work/01.prj/magic/project/demo/android_demo/camera/app/src/main/cpp/native-lib.cpp"
+#include "MagicSRBlueprintLibrary.h"
+#include "MagicSRSmokePng.h"
+
+#include <cstdlib>
 
 namespace
 {
 constexpr int SmokeWidth = 64;
 constexpr int SmokeHeight = 64;
 constexpr int SmokeScale = 2;
-
-bool WriteGrayPgmFromRgba(const char* Path, const uint8_t* Rgba, int Width, int Height)
-{
-    FILE* File = fopen(Path, "wb");
-    if (File == nullptr)
-    {
-        return false;
-    }
-
-    fprintf(File, "P5\n%d %d\n255\n", Width, Height);
-    for (int I = 0; I < Width * Height; ++I)
-    {
-        const uint8_t Value = Rgba[I * 4];
-        fwrite(&Value, 1, 1, File);
-    }
-    fclose(File);
-    return true;
-}
 
 GLuint CreateGlesR8Texture(int Width, int Height, const uint8_t* Data)
 {
@@ -240,10 +226,11 @@ int RunTextureBackendSmoke(const char* ModelPath,
 
     char InputPath[512] = {};
     char OutputPath[512] = {};
-    snprintf(InputPath, sizeof(InputPath), "%s/input_%s_64x64.pgm", OutputDir, BackendName);
-    snprintf(OutputPath, sizeof(OutputPath), "%s/output_%s_128x128.pgm", OutputDir, BackendName);
-    const bool WroteInput = WriteGrayPgmFromRgba(InputPath, Input, SmokeWidth, SmokeHeight);
-    const bool WroteOutput = WriteGrayPgmFromRgba(OutputPath, Output, Status.output_width, Status.output_height);
+    snprintf(InputPath, sizeof(InputPath), "%s/input_%s_64x64.png", OutputDir, BackendName);
+    snprintf(OutputPath, sizeof(OutputPath), "%s/output_%s_128x128.png", OutputDir, BackendName);
+    const bool WroteInput = MagicSRSmokePng::WriteRgbaPng(InputPath, Input, SmokeWidth, SmokeHeight);
+    const bool WroteOutput =
+        MagicSRSmokePng::WriteRgbaPng(OutputPath, Output, Status.output_width, Status.output_height);
     const bool Pass = Ret == 0 && Status.output_width == OutW && Status.output_height == OutH && NonZero > 0 && WroteInput && WroteOutput;
 
     snprintf(OutLine,
@@ -262,6 +249,100 @@ int RunTextureBackendSmoke(const char* ModelPath,
     free(Output);
     return Pass ? 0 : -1;
 }
+
+// Plugin public API: Enable / Enable_3params / Enable_4params / Disable (Vulkan).
+int RunEnableApiSmoke(const char* ModelPath, char* OutLine, size_t OutLineSize)
+{
+    constexpr int EnableW = 720;
+    constexpr int EnableH = 1280;
+    constexpr float EnableScale = 2.0f;
+    constexpr int32 AlgModeHighSpeed = 0;       // HIGH_SPEED_MODE
+    constexpr int32 BackendDefault = 0;         // MAGIC_BACKEND_DEFAULT
+    constexpr int32 BackendVulkan = 6;          // MAGIC_BACKEND_VULKAN
+
+    if (ModelPath == nullptr || ModelPath[0] == '\0')
+    {
+        snprintf(OutLine, OutLineSize, "api=Enable ret=-1 step=model_missing");
+        return -1;
+    }
+
+    setenv("MAGIC_SR_MODEL", ModelPath, 1);
+
+    const size_t InputBytes = static_cast<size_t>(EnableW) * EnableH * 4;
+    uint8_t* Input = static_cast<uint8_t*>(malloc(InputBytes));
+    if (Input == nullptr)
+    {
+        snprintf(OutLine, OutLineSize, "api=Enable ret=-100 step=oom");
+        return -1;
+    }
+
+    for (int Y = 0; Y < EnableH; ++Y)
+    {
+        for (int X = 0; X < EnableW; ++X)
+        {
+            const size_t Index = (static_cast<size_t>(Y) * EnableW + X) * 4;
+            Input[Index] = static_cast<uint8_t>((X * 3 + Y * 5) & 0xff);
+            Input[Index + 1] = static_cast<uint8_t>((X * 7) & 0xff);
+            Input[Index + 2] = static_cast<uint8_t>((Y * 9) & 0xff);
+            Input[Index + 3] = 255;
+        }
+    }
+
+    VulkanTexture InTex = vulkan_upload_rgb_to_texture(EnableW, EnableH, Input);
+    free(Input);
+    if (InTex.image == VK_NULL_HANDLE)
+    {
+        snprintf(OutLine, OutLineSize, "api=Enable ret=-106 step=upload");
+        return -1;
+    }
+
+    const int64 InputHandle = static_cast<int64>(reinterpret_cast<uintptr_t>(&InTex));
+    UMagicSRBlueprintLibrary::SetInputSizeHint(EnableW, EnableH);
+
+    const int64 Out1 = UMagicSRBlueprintLibrary::Enable(InputHandle, EnableScale);
+    const int64 Out2 = UMagicSRBlueprintLibrary::Enable(InputHandle, EnableScale);
+    const bool Enabled = Out1 != 0;
+    const bool Reused = Enabled && Out2 == Out1;
+    UMagicSRBlueprintLibrary::Disable();
+    const int64 Out3 = UMagicSRBlueprintLibrary::Enable(InputHandle, EnableScale);
+    const bool Reenabled = Out3 != 0;
+    UMagicSRBlueprintLibrary::Disable();
+
+    UMagicSRBlueprintLibrary::SetInputSizeHint(EnableW, EnableH);
+    const int64 OutMode = UMagicSRBlueprintLibrary::Enable_3params(InputHandle, EnableScale, AlgModeHighSpeed);
+    const bool ModeOk = OutMode != 0;
+    UMagicSRBlueprintLibrary::Disable();
+
+    UMagicSRBlueprintLibrary::SetInputSizeHint(EnableW, EnableH);
+    const int64 OutExDefault =
+        UMagicSRBlueprintLibrary::Enable_4params(InputHandle, EnableScale, AlgModeHighSpeed, BackendDefault);
+    const bool ExDefaultOk = OutExDefault != 0;
+    UMagicSRBlueprintLibrary::Disable();
+
+    UMagicSRBlueprintLibrary::SetInputSizeHint(EnableW, EnableH);
+    const int64 OutExVulkan =
+        UMagicSRBlueprintLibrary::Enable_4params(InputHandle, EnableScale, AlgModeHighSpeed, BackendVulkan);
+    const bool ExVulkanOk = OutExVulkan != 0;
+    UMagicSRBlueprintLibrary::Disable();
+
+    vulkan_destroyTexture(InTex);
+
+    const bool Pass = Enabled && Reused && Reenabled && ModeOk && ExDefaultOk && ExVulkanOk;
+    snprintf(OutLine,
+             OutLineSize,
+             "api=Enable,Enable_3params,Enable_4params enable=%d reused=%d reenabled=%d mode=%d ex_default=%d ex_vulkan=%d "
+             "in=%dx%d scale=%.1f",
+             Enabled ? 1 : 0,
+             Reused ? 1 : 0,
+             Reenabled ? 1 : 0,
+             ModeOk ? 1 : 0,
+             ExDefaultOk ? 1 : 0,
+             ExVulkanOk ? 1 : 0,
+             EnableW,
+             EnableH,
+             EnableScale);
+    return Pass ? 0 : -1;
+}
 }  // namespace
 
 extern "C" int MagicSR_RunAndroidBackendSmoke(const char* ModelPath, const char* OutputDir, char* OutReport, size_t OutReportSize)
@@ -277,8 +358,17 @@ extern "C" int MagicSR_RunAndroidBackendSmoke(const char* ModelPath, const char*
     const int VulkanRet = RunTextureBackendSmoke(ModelPath, MAGIC_BACKEND_VULKAN, "vulkan", OutputDir, VulkanLine, sizeof(VulkanLine));
     const int GlesRet = RunTextureBackendSmoke(ModelPath, MAGIC_BACKEND_OPENGLES, "gles", OutputDir, GlesLine, sizeof(GlesLine));
     const int Failures = (VulkanRet == 0 ? 0 : 1) + (GlesRet == 0 ? 0 : 1);
-    snprintf(OutReport, OutReportSize, "%s; %s; summary failures=%d", VulkanLine, GlesLine, Failures);
+    snprintf(OutReport, OutReportSize, "api=CreateSession/Process %s; %s; summary failures=%d", VulkanLine, GlesLine, Failures);
     return Failures == 0 ? 0 : -1;
+}
+
+extern "C" int MagicSR_RunAndroidEnableSmoke(const char* ModelPath, char* OutReport, size_t OutReportSize)
+{
+    if (OutReport == nullptr || OutReportSize == 0)
+    {
+        return -1;
+    }
+    return RunEnableApiSmoke(ModelPath, OutReport, OutReportSize);
 }
 
 #endif  // MAGIC_SR_ANDROID

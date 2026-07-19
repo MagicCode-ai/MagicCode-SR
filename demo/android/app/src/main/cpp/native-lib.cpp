@@ -4,10 +4,11 @@
 #include <GLES2/gl2.h>
 #include <GLES3/gl3.h>
 #include <cstring>
+#include <cstdlib>
 #include <string>
 
 extern "C" {
-#include "mc_interface.h"
+#include "mc_enable.h"
 }
 
 #define LOG_TAG "MagicMagnifierJNI"
@@ -16,17 +17,17 @@ extern "C" {
 
 static void *g_sr_handle = nullptr;
 static magic_backend_e g_backend = MAGIC_BACKEND_OPENGLES;
+static float g_enable_scale = 2.0f;
+static alg_mode_e g_enable_mode = HIGH_SPEED_MODE;
+static const jlong kMcEnableApiHandle = 1;
 
 static EGLDisplay g_display = EGL_NO_DISPLAY;
 static EGLContext g_context = EGL_NO_CONTEXT;
 static EGLSurface g_surface = EGL_NO_SURFACE;
 
 static GLuint g_input_tex = 0;
-static GLuint g_output_tex = 0;
 static int g_input_w = 0;
 static int g_input_h = 0;
-static int g_output_w = 0;
-static int g_output_h = 0;
 
 static bool ensure_gles_context() {
     eglBindAPI(EGL_OPENGL_ES_API);
@@ -87,35 +88,22 @@ static void gles_destroy_texture(GLuint tex) {
     if (tex != 0) glDeleteTextures(1, &tex);
 }
 
-static void clear_gles_cache() {
+static void clear_gles_input_cache() {
     if (g_input_tex != 0) {
         gles_destroy_texture(g_input_tex);
         g_input_tex = 0;
     }
-    if (g_output_tex != 0) {
-        gles_destroy_texture(g_output_tex);
-        g_output_tex = 0;
-    }
-    g_input_w = g_input_h = g_output_w = g_output_h = 0;
+    g_input_w = g_input_h = 0;
 }
 
-static bool ensure_gles_textures(int in_w, int in_h, int out_w, int out_h) {
+static bool ensure_gles_input_texture(int in_w, int in_h) {
     if (!ensure_gles_context()) return false;
-    bool need_recreate = (g_input_tex == 0 || g_output_tex == 0 ||
-                          g_input_w != in_w || g_input_h != in_h ||
-                          g_output_w != out_w || g_output_h != out_h);
-    if (!need_recreate) return true;
-    clear_gles_cache();
+    if (g_input_tex != 0 && g_input_w == in_w && g_input_h == in_h) return true;
+    clear_gles_input_cache();
     g_input_tex = gles_create_texture(in_w, in_h);
-    g_output_tex = gles_create_texture(out_w, out_h);
-    if (g_input_tex == 0 || g_output_tex == 0) {
-        clear_gles_cache();
-        return false;
-    }
+    if (g_input_tex == 0) return false;
     g_input_w = in_w;
     g_input_h = in_h;
-    g_output_w = out_w;
-    g_output_h = out_h;
     return true;
 }
 
@@ -173,41 +161,33 @@ Java_com_example_superresolution_natives_SuperResolutionLib_initSuperResolution(
     }
     const char *model_path_cstr = model_path ? env->GetStringUTFChars(model_path, nullptr) : "";
 
-    if (g_sr_handle) {
-        MC_Uninit(g_sr_handle);
-        g_sr_handle = nullptr;
-    }
-    clear_gles_cache();
+    MC_Disable(nullptr);
+    g_sr_handle = nullptr;
+    clear_gles_input_cache();
 
-    input_param_t param;
-    memset(&param, 0, sizeof(param));
-    param.width = (unsigned int)width;
-    param.height = (unsigned int)height;
-    param.scaler_factor = scaler_factor;
-    param.alg_mode = (alg_mode_e)sr_mode;
-    param.num_threads = 1;
-    param.log_level = MAGIC_LOG_INFO;
-    param.backend = (magic_backend_e)backend;
-    if (param.backend == MAGIC_BACKEND_DEFAULT) param.backend = MAGIC_BACKEND_OPENGLES;
-    g_backend = param.backend;
-    param.input_type = (g_backend == MAGIC_BACKEND_OPENGLES) ? INPUT_TEXTURE_RGB8Unorm : INPUT_BUFFER;
-    if (model_path_cstr && strlen(model_path_cstr) < sizeof(param.model_path)) {
-        strncpy(param.model_path, model_path_cstr, sizeof(param.model_path) - 1);
-    }
+    g_backend = (magic_backend_e)backend;
+    if (g_backend == MAGIC_BACKEND_DEFAULT) g_backend = MAGIC_BACKEND_OPENGLES;
+    g_enable_scale = scaler_factor;
+    g_enable_mode = (alg_mode_e)sr_mode;
 
-    if (g_backend == MAGIC_BACKEND_OPENGLES && !ensure_gles_context()) {
-        if (model_path) env->ReleaseStringUTFChars(model_path, model_path_cstr);
+    if (model_path_cstr && model_path_cstr[0] != '\0') {
+        setenv("MAGIC_SR_MODEL", model_path_cstr, 1);
+    }
+    if (model_path) env->ReleaseStringUTFChars(model_path, model_path_cstr);
+
+    if (g_backend != MAGIC_BACKEND_OPENGLES) {
+        LOGE("magnifier demo only supports OpenGLES MC_Enable path, backend=%d", (int)g_backend);
+        return 0;
+    }
+    if (!ensure_gles_context()) {
         LOGE("gles context create failed");
         return 0;
     }
-    g_sr_handle = MC_Init(&param);
-    if (model_path) env->ReleaseStringUTFChars(model_path, model_path_cstr);
-    if (!g_sr_handle) {
-        LOGE("MC_Init failed");
-        return 0;
-    }
-    LOGI("MC_Init success handle=%p", g_sr_handle);
-    return (jlong)g_sr_handle;
+
+    MC_Enable_SetInputSizeHint((unsigned int)width, (unsigned int)height);
+    g_sr_handle = (void *)(uintptr_t)kMcEnableApiHandle;
+    LOGI("MC_Enable path ready scale=%.3f mode=%d", g_enable_scale, (int)g_enable_mode);
+    return kMcEnableApiHandle;
 }
 
 extern "C" JNIEXPORT jint JNICALL
@@ -224,6 +204,7 @@ Java_com_example_superresolution_natives_SuperResolutionLib_processImage(
     if (!g_sr_handle) return -1;
     if (!env || !input || !output) return -2;
     if (channel_num != 4) return -3;
+    if (g_backend != MAGIC_BACKEND_OPENGLES) return -4;
 
     jbyte *in_bytes = env->GetByteArrayElements(input, nullptr);
     jbyte *out_bytes = env->GetByteArrayElements(output, nullptr);
@@ -234,28 +215,33 @@ Java_com_example_superresolution_natives_SuperResolutionLib_processImage(
     }
 
     int ret = 0;
-    if (g_backend == MAGIC_BACKEND_OPENGLES) {
-        if (!ensure_gles_textures(input_width, input_height, output_width, output_height)) {
-            env->ReleaseByteArrayElements(input, in_bytes, JNI_ABORT);
-            env->ReleaseByteArrayElements(output, out_bytes, 0);
-            return -5;
-        }
-        gles_upload_rgba(g_input_tex, input_width, input_height, (const uint8_t *)in_bytes);
-        ret = MC_Process(g_sr_handle,
-                         (void *)(uintptr_t)g_input_tex,
-                         (void *)(uintptr_t)g_output_tex);
-        if (ret == 0) {
-            uint8_t *readback = gles_readback_rgba(g_output_tex, output_width, output_height);
-            if (!readback) {
-                ret = -6;
-            } else {
-                size_t out_size = (size_t)output_width * (size_t)output_height * 4u;
-                memcpy(out_bytes, readback, out_size);
-                free(readback);
-            }
-        }
+    if (!ensure_gles_input_texture(input_width, input_height)) {
+        env->ReleaseByteArrayElements(input, in_bytes, JNI_ABORT);
+        env->ReleaseByteArrayElements(output, out_bytes, 0);
+        return -5;
+    }
+
+    gles_upload_rgba(g_input_tex, input_width, input_height, (const uint8_t *)in_bytes);
+    MC_Enable_SetInputSizeHint((unsigned int)input_width, (unsigned int)input_height);
+    void *outPtr = MC_Enable_4params((void *)(uintptr_t)g_input_tex,
+                                     g_enable_scale,
+                                     g_enable_mode,
+                                     MAGIC_BACKEND_OPENGLES);
+    if (outPtr == nullptr) {
+        LOGE("MC_Enable_4params failed");
+        env->ReleaseByteArrayElements(input, in_bytes, JNI_ABORT);
+        env->ReleaseByteArrayElements(output, out_bytes, 0);
+        return -1;
+    }
+
+    GLuint outTex = (GLuint)(uintptr_t)outPtr;
+    uint8_t *readback = gles_readback_rgba(outTex, output_width, output_height);
+    if (!readback) {
+        ret = -6;
     } else {
-        ret = MC_Process(g_sr_handle, (void *)in_bytes, (void *)out_bytes);
+        size_t out_size = (size_t)output_width * (size_t)output_height * 4u;
+        memcpy(out_bytes, readback, out_size);
+        free(readback);
     }
 
     env->ReleaseByteArrayElements(input, in_bytes, JNI_ABORT);
@@ -267,9 +253,7 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_example_superresolution_natives_SuperResolutionLib_uninitSuperResolution(
         JNIEnv *,
         jclass) {
-    if (g_sr_handle) {
-        MC_Uninit(g_sr_handle);
-        g_sr_handle = nullptr;
-    }
-    clear_gles_cache();
+    MC_Disable(nullptr);
+    g_sr_handle = nullptr;
+    clear_gles_input_cache();
 }

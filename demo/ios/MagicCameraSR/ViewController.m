@@ -5,8 +5,10 @@
 #import <QuartzCore/QuartzCore.h>
 #import <UIKit/UIKit.h>
 #import <math.h>
+#import <stdlib.h>
+#import <string.h>
 
-#include "mc_interface.h"
+#include "mc_enable.h"
 
 static const int32_t kInputWidth = 1920;
 static const int32_t kInputHeight = 1080;
@@ -21,18 +23,17 @@ static const NSTimeInterval kScaleApplyDelay = 0.08;
 @property(nonatomic, strong) AVCaptureSession *session;
 @property(nonatomic, strong) dispatch_queue_t captureQueue;
 @property(nonatomic, strong) id<MTLDevice> device;
-@property(nonatomic) void *srHandle;
 @property(nonatomic) alg_mode_e selectedMode;
 @property(nonatomic) float selectedScale;
-@property(nonatomic) size_t handleWidth;
-@property(nonatomic) size_t handleHeight;
-@property(nonatomic, copy) NSString *modelPath;
 @property(nonatomic, strong) id<MTLTexture> inputTexture;
-@property(nonatomic, strong) id<MTLTexture> outputTexture;
-@property(nonatomic, strong) NSMutableData *inputRgbaData;
+@property(nonatomic, strong) NSMutableData *fullRgbaData;
+@property(nonatomic, strong) NSMutableData *cropRgbaData;
 @property(nonatomic, strong) NSMutableData *outputRgbaData;
 @property(nonatomic) BOOL processingFrame;
-@property(nonatomic) float handleScale;
+@property(nonatomic) size_t fullFrameWidth;
+@property(nonatomic) size_t fullFrameHeight;
+@property(nonatomic) size_t inputTexWidth;
+@property(nonatomic) size_t inputTexHeight;
 @end
 
 @implementation ViewController
@@ -44,9 +45,10 @@ static const NSTimeInterval kScaleApplyDelay = 0.08;
     self.device = MTLCreateSystemDefaultDevice();
     self.selectedMode = HIGH_SPEED_MODE;
     self.selectedScale = 2.0f;
-    self.handleWidth = 0;
-    self.handleHeight = 0;
-    self.handleScale = 0.0f;
+    self.fullFrameWidth = 0;
+    self.fullFrameHeight = 0;
+    self.inputTexWidth = 0;
+    self.inputTexHeight = 0;
     [self buildUi];
 
     @try {
@@ -59,10 +61,7 @@ static const NSTimeInterval kScaleApplyDelay = 0.08;
 }
 
 - (void)dealloc {
-    if (self.srHandle) {
-        MC_Uninit(self.srHandle);
-        self.srHandle = NULL;
-    }
+    MC_Disable(NULL);
     [self.session stopRunning];
 }
 
@@ -235,28 +234,44 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     size_t height = CVPixelBufferGetHeight(pb);
 
     @try {
-        [self ensureEngineForWidth:width height:height];
-        [self ensureBuffersForWidth:width height:height];
-        [self fillRgbaInputFromPixelBuffer:pb];
+        [self ensureFullFrameBufferForWidth:width height:height];
+        [self fillFullRgbaFromPixelBuffer:pb];
 
-        int ret = MC_Process(self.srHandle, (__bridge void *)self.inputTexture, (__bridge void *)self.outputTexture);
-        if (ret != 0) {
-            @throw [NSException exceptionWithName:@"MCProcessError"
-                                           reason:[NSString stringWithFormat:@"MC_Process failed: %d", ret]
+        // Magnifier: crop center (1/scale), then SR that crop back up.
+        size_t cropW = [self evenSize:llround((double)width / (double)self.selectedScale) max:width];
+        size_t cropH = [self evenSize:llround((double)height / (double)self.selectedScale) max:height];
+        size_t cropX = (width - cropW) / 2;
+        size_t cropY = (height - cropH) / 2;
+        [self ensureInputTextureForWidth:cropW height:cropH];
+        [self uploadCropToInputTextureFromFullX:cropX y:cropY width:cropW height:cropH];
+        [self prepareMetalEnableModelEnvironment];
+
+        void *outPtr = MC_Enable_3params((__bridge void *)self.inputTexture,
+                                         self.selectedScale,
+                                         self.selectedMode);
+        if (outPtr == NULL) {
+            @throw [NSException exceptionWithName:@"MCEnableError"
+                                           reason:[NSString stringWithFormat:@"MC_Enable_3params failed scale=%.2f mode=%d",
+                                                   self.selectedScale, (int)self.selectedMode]
                                          userInfo:nil];
         }
-        [self.outputTexture getBytes:self.outputRgbaData.mutableBytes
-                        bytesPerRow:self.outputTexture.width * 4
-                         fromRegion:MTLRegionMake2D(0, 0, self.outputTexture.width, self.outputTexture.height)
-                        mipmapLevel:0];
-        UIImage *img = [self imageFromRgbaData:self.outputRgbaData
-                                        width:self.outputTexture.width
-                                       height:self.outputTexture.height];
-        NSString *status = [NSString stringWithFormat:@"mode=%@ scale=x%@ in=%zux%zu out=%zux%zu",
+
+        id<MTLTexture> outTexture = (__bridge id<MTLTexture>)outPtr;
+        size_t outW = outTexture.width;
+        size_t outH = outTexture.height;
+        size_t outputBytes = outW * outH * 4;
+        if (!self.outputRgbaData || self.outputRgbaData.length != outputBytes) {
+            self.outputRgbaData = [NSMutableData dataWithLength:outputBytes];
+        }
+        [outTexture getBytes:self.outputRgbaData.mutableBytes
+                 bytesPerRow:outW * 4
+                  fromRegion:MTLRegionMake2D(0, 0, outW, outH)
+                 mipmapLevel:0];
+        UIImage *img = [self imageFromRgbaData:self.outputRgbaData width:outW height:outH];
+        NSString *status = [NSString stringWithFormat:@"mode=%@ scale=x%@ crop=%zux%zu out=%zux%zu",
                             self.selectedMode == SPEED_MODE ? @"speed" : @"highspeed",
                             [self formatScale:self.selectedScale],
-                            width, height,
-                            self.outputTexture.width, self.outputTexture.height];
+                            cropW, cropH, outW, outH];
         dispatch_async(dispatch_get_main_queue(), ^{
             self.imageView.image = img;
             self.statusLabel.text = status;
@@ -271,80 +286,50 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     self.processingFrame = NO;
 }
 
-- (void)ensureEngineForWidth:(size_t)width height:(size_t)height {
+- (void)prepareMetalEnableModelEnvironment {
     NSString *modelPath = [self modelPathForCurrentMode];
-    BOOL stale = self.srHandle == NULL ||
-                 self.handleWidth != width ||
-                 self.handleHeight != height ||
-                 fabsf(self.handleScale - self.selectedScale) > 0.0001f ||
-                 ![self.modelPath isEqualToString:modelPath];
-    if (!stale) return;
-
-    if (self.srHandle) {
-        MC_Uninit(self.srHandle);
-        self.srHandle = NULL;
-    }
-    input_param_t param;
-    memset(&param, 0, sizeof(param));
-    param.width = (unsigned int)width;
-    param.height = (unsigned int)height;
-    param.scaler_factor = self.selectedScale;
-    param.alg_mode = self.selectedMode;
-    param.num_threads = 1;
-    param.log_level = MAGIC_LOG_INFO;
-    param.backend = MAGIC_BACKEND_METAL;
-    param.input_type = INPUT_TEXTURE_RGB8Unorm;
-    strncpy(param.model_path, modelPath.UTF8String, sizeof(param.model_path) - 1);
-    self.srHandle = MC_Init(&param);
-    if (!self.srHandle) {
-        @throw [NSException exceptionWithName:@"MCInitError"
-                                       reason:[NSString stringWithFormat:@"MC_Init failed for %@", modelPath]
-                                     userInfo:nil];
-    }
-    self.handleWidth = width;
-    self.handleHeight = height;
-    self.handleScale = self.selectedScale;
-    self.modelPath = modelPath;
+    setenv("MAGIC_SR_MODEL", modelPath.UTF8String, 1);
 }
 
-- (void)ensureBuffersForWidth:(size_t)width height:(size_t)height {
-    size_t inputBytes = width * height * 4;
-    if (!self.inputRgbaData || self.inputRgbaData.length != inputBytes) {
-        self.inputRgbaData = [NSMutableData dataWithLength:inputBytes];
-        MTLTextureDescriptor *inDesc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
-                                                                                           width:width
-                                                                                          height:height
-                                                                                       mipmapped:NO];
-        inDesc.usage = MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite;
-        self.inputTexture = [self.device newTextureWithDescriptor:inDesc];
-        if (!self.inputTexture) {
-            @throw [NSException exceptionWithName:@"TextureCreateError" reason:@"failed to create input texture" userInfo:nil];
-        }
-    }
-
-    size_t outW = MAX((size_t)1, (size_t)llround((double)width * self.selectedScale));
-    size_t outH = MAX((size_t)1, (size_t)llround((double)height * self.selectedScale));
-    size_t outputBytes = outW * outH * 4;
-    if (!self.outputRgbaData || self.outputRgbaData.length != outputBytes) {
-        self.outputRgbaData = [NSMutableData dataWithLength:outputBytes];
-        MTLTextureDescriptor *outDesc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
-                                                                                            width:outW
-                                                                                           height:outH
-                                                                                        mipmapped:NO];
-        outDesc.usage = MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite;
-        self.outputTexture = [self.device newTextureWithDescriptor:outDesc];
-        if (!self.outputTexture) {
-            @throw [NSException exceptionWithName:@"TextureCreateError" reason:@"failed to create output texture" userInfo:nil];
-        }
-    }
+- (size_t)evenSize:(long long)desired max:(size_t)max {
+    size_t v = (size_t)MAX(2LL, MIN(desired, (long long)max));
+    return v & ~(size_t)1;
 }
 
-- (void)fillRgbaInputFromPixelBuffer:(CVPixelBufferRef)pb {
+- (void)ensureFullFrameBufferForWidth:(size_t)width height:(size_t)height {
+    size_t bytes = width * height * 4;
+    if (self.fullRgbaData && self.fullFrameWidth == width && self.fullFrameHeight == height &&
+        self.fullRgbaData.length == bytes) {
+        return;
+    }
+    self.fullRgbaData = [NSMutableData dataWithLength:bytes];
+    self.fullFrameWidth = width;
+    self.fullFrameHeight = height;
+}
+
+- (void)ensureInputTextureForWidth:(size_t)width height:(size_t)height {
+    if (self.inputTexture && self.inputTexWidth == width && self.inputTexHeight == height) {
+        return;
+    }
+    MTLTextureDescriptor *inDesc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
+                                                                                      width:width
+                                                                                     height:height
+                                                                                  mipmapped:NO];
+    inDesc.usage = MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite;
+    self.inputTexture = [self.device newTextureWithDescriptor:inDesc];
+    if (!self.inputTexture) {
+        @throw [NSException exceptionWithName:@"TextureCreateError" reason:@"failed to create input texture" userInfo:nil];
+    }
+    self.inputTexWidth = width;
+    self.inputTexHeight = height;
+}
+
+- (void)fillFullRgbaFromPixelBuffer:(CVPixelBufferRef)pb {
     uint8_t *src = (uint8_t *)CVPixelBufferGetBaseAddress(pb);
     size_t width = CVPixelBufferGetWidth(pb);
     size_t height = CVPixelBufferGetHeight(pb);
     size_t stride = CVPixelBufferGetBytesPerRow(pb);
-    uint8_t *dst = (uint8_t *)self.inputRgbaData.mutableBytes;
+    uint8_t *dst = (uint8_t *)self.fullRgbaData.mutableBytes;
     for (size_t y = 0; y < height; y++) {
         const uint8_t *row = src + y * stride;
         uint8_t *out = dst + y * width * 4;
@@ -359,10 +344,25 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
             out[x * 4 + 3] = a;
         }
     }
-    [self.inputTexture replaceRegion:MTLRegionMake2D(0, 0, width, height)
+}
+
+- (void)uploadCropToInputTextureFromFullX:(size_t)cropX y:(size_t)cropY width:(size_t)cropW height:(size_t)cropH {
+    const uint8_t *src = (const uint8_t *)self.fullRgbaData.bytes;
+    size_t fullW = self.fullFrameWidth;
+    size_t bytes = cropW * cropH * 4;
+    if (!self.cropRgbaData || self.cropRgbaData.length != bytes) {
+        self.cropRgbaData = [NSMutableData dataWithLength:bytes];
+    }
+    uint8_t *dst = (uint8_t *)self.cropRgbaData.mutableBytes;
+    for (size_t y = 0; y < cropH; y++) {
+        memcpy(dst + y * cropW * 4,
+               src + ((cropY + y) * fullW + cropX) * 4,
+               cropW * 4);
+    }
+    [self.inputTexture replaceRegion:MTLRegionMake2D(0, 0, cropW, cropH)
                          mipmapLevel:0
-                           withBytes:self.inputRgbaData.bytes
-                         bytesPerRow:width * 4];
+                           withBytes:self.cropRgbaData.bytes
+                         bytesPerRow:cropW * 4];
 }
 
 - (UIImage *)imageFromRgbaData:(NSData *)rgba width:(size_t)width height:(size_t)height {
@@ -434,18 +434,15 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
 }
 
 - (void)restartEngineUnsafe {
-    if (self.srHandle) {
-        MC_Uninit(self.srHandle);
-        self.srHandle = NULL;
-    }
-    self.handleWidth = 0;
-    self.handleHeight = 0;
-    self.handleScale = 0.0f;
-    self.modelPath = nil;
-    self.outputTexture = nil;
-    self.outputRgbaData = nil;
+    MC_Disable(NULL);
     self.inputTexture = nil;
-    self.inputRgbaData = nil;
+    self.fullRgbaData = nil;
+    self.cropRgbaData = nil;
+    self.outputRgbaData = nil;
+    self.fullFrameWidth = 0;
+    self.fullFrameHeight = 0;
+    self.inputTexWidth = 0;
+    self.inputTexHeight = 0;
 }
 
 - (void)failAndStop:(NSString *)message {

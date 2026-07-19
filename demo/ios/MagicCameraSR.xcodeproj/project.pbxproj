@@ -22,7 +22,7 @@
 		000000000000000000000207 /* SceneDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SceneDelegate.h; sourceTree = "<group>"; };
 		000000000000000000000208 /* ViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ViewController.h; sourceTree = "<group>"; };
 		000000000000000000000209 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		000000000000000000000301 /* MagicCameraSR.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MagicCameraSR.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		000000000000000000000301 /* MagicMagnifierSR.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MagicMagnifierSR.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -39,12 +39,12 @@
 		000000000000000000000501 = {
 			isa = PBXGroup;
 			children = (
-				000000000000000000000502 /* MagicCameraSR */,
+				000000000000000000000502 /* MagicMagnifierSR */,
 				000000000000000000000503 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		000000000000000000000502 /* MagicCameraSR */ = {
+		000000000000000000000502 /* MagicMagnifierSR */ = {
 			isa = PBXGroup;
 			children = (
 				000000000000000000000206 /* AppDelegate.h */,
@@ -56,13 +56,14 @@
 				000000000000000000000201 /* main.m */,
 				000000000000000000000209 /* Info.plist */,
 			);
+			name = MagicMagnifierSR;
 			path = MagicCameraSR;
 			sourceTree = "<group>";
 		};
 		000000000000000000000503 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				000000000000000000000301 /* MagicCameraSR.app */,
+				000000000000000000000301 /* MagicMagnifierSR.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -70,9 +71,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		000000000000000000000601 /* MagicCameraSR */ = {
+		000000000000000000000601 /* MagicMagnifierSR */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 000000000000000000000901 /* Build configuration list for PBXNativeTarget "MagicCameraSR" */;
+			buildConfigurationList = 000000000000000000000901 /* Build configuration list for PBXNativeTarget "MagicMagnifierSR" */;
 			buildPhases = (
 				000000000000000000000701 /* Sources */,
 				000000000000000000000401 /* Frameworks */,
@@ -83,9 +84,9 @@
 			);
 			dependencies = (
 			);
-			name = MagicCameraSR;
-			productName = MagicCameraSR;
-			productReference = 000000000000000000000301 /* MagicCameraSR.app */;
+			name = MagicMagnifierSR;
+			productName = MagicMagnifierSR;
+			productReference = 000000000000000000000301 /* MagicMagnifierSR.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -101,7 +102,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 000000000000000000000900 /* Build configuration list for PBXProject "MagicCameraSR" */;
+			buildConfigurationList = 000000000000000000000900 /* Build configuration list for PBXProject "MagicMagnifierSR" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -114,7 +115,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				000000000000000000000601 /* MagicCameraSR */,
+				000000000000000000000601 /* MagicMagnifierSR */,
 			);
 		};
 /* End PBXProject section */
@@ -171,8 +172,9 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../header";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../interface";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../lib/ios";
 				OTHER_LDFLAGS = (
@@ -201,8 +203,9 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../header";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../interface";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../lib/ios";
 				OTHER_LDFLAGS = (
@@ -231,6 +234,7 @@
 			buildSettings = {
 				DEVELOPMENT_TEAM = 6DZ9SHA9BX;
 				INFOPLIST_FILE = MagicCameraSR/Info.plist;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = Debug;
 		};
@@ -239,29 +243,30 @@
 			buildSettings = {
 				DEVELOPMENT_TEAM = 6DZ9SHA9BX;
 				INFOPLIST_FILE = MagicCameraSR/Info.plist;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		000000000000000000000900 /* Build configuration list for PBXProject "MagicCameraSR" */ = {
+		000000000000000000000900 /* Build configuration list for PBXProject "MagicMagnifierSR" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				000000000000000000000A01 /* Debug */,
 				000000000000000000000A02 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
-		000000000000000000000901 /* Build configuration list for PBXNativeTarget "MagicCameraSR" */ = {
+		000000000000000000000901 /* Build configuration list for PBXNativeTarget "MagicMagnifierSR" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				000000000000000000000B01 /* Debug */,
 				000000000000000000000B02 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 	};

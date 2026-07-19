@@ -7,8 +7,11 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include "MagicSRSmokePng.h"
+
 extern "C" {
 #include "mc_interface.h"
+#include "mc_enable.h"
 void* get_device(void* handle);
 }
 
@@ -18,45 +21,63 @@ constexpr int SmokeWidth = 64;
 constexpr int SmokeHeight = 64;
 constexpr int SmokeScale = 2;
 
-bool WriteGrayPgm(const char* Path, const uint8_t* Data, int Width, int Height)
+id<MTLTexture> CreateRgbaTexture(id<MTLDevice> Device, int Width, int Height, const uint8_t* RgbaOrNull)
 {
-    FILE* File = fopen(Path, "wb");
-    if (File == nullptr)
+    MTLTextureDescriptor* Desc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
+                                                                                    width:Width
+                                                                                   height:Height
+                                                                                mipmapped:NO];
+    Desc.usage = MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite | MTLTextureUsageRenderTarget;
+    id<MTLTexture> Texture = [Device newTextureWithDescriptor:Desc];
+    if (Texture != nil && RgbaOrNull != nullptr)
     {
-        return false;
+        [Texture replaceRegion:MTLRegionMake2D(0, 0, Width, Height)
+                   mipmapLevel:0
+                     withBytes:RgbaOrNull
+                   bytesPerRow:Width * 4];
     }
-
-    fprintf(File, "P5\n%d %d\n255\n", Width, Height);
-    const size_t Written = fwrite(Data, 1, static_cast<size_t>(Width * Height), File);
-    fclose(File);
-    return Written == static_cast<size_t>(Width * Height);
+    return Texture;
 }
 
-bool SmokeAutoRunRequested()
+void FillSyntheticRgba(uint8_t* Rgba, int Width, int Height)
 {
-    NSString* BundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
-    if (![BundleIdentifier isEqualToString:@"com.magicsr.uesmoke"])
+    for (int Y = 0; Y < Height; ++Y)
     {
-        return false;
-    }
-
-    NSString* CommandLinePath = [[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"uecommandline.txt"];
-    NSString* CommandLine = [NSString stringWithContentsOfFile:CommandLinePath encoding:NSUTF8StringEncoding error:nil];
-    return [CommandLine containsString:@"-MagicSRUESmoke"];
-}
-
-NSString* FirstExistingPath(NSArray<NSString*>* Paths)
-{
-    NSFileManager* FileManager = [NSFileManager defaultManager];
-    for (NSString* Path in Paths)
-    {
-        if ([FileManager fileExistsAtPath:Path])
+        for (int X = 0; X < Width; ++X)
         {
-            return Path;
+            const size_t Index = (static_cast<size_t>(Y) * Width + X) * 4;
+            Rgba[Index] = static_cast<uint8_t>((X * 3 + Y * 5) & 0xff);
+            Rgba[Index + 1] = static_cast<uint8_t>((X * 7) & 0xff);
+            Rgba[Index + 2] = static_cast<uint8_t>((Y * 9) & 0xff);
+            Rgba[Index + 3] = 255;
         }
     }
-    return [Paths firstObject];
 }
+
+bool ReadRgbaTexture(id<MTLTexture> Texture, uint8_t* Rgba, int Width, int Height)
+{
+    if (Texture == nil || Rgba == nullptr || Width <= 0 || Height <= 0)
+    {
+        return false;
+    }
+    [Texture getBytes:Rgba bytesPerRow:Width * 4 fromRegion:MTLRegionMake2D(0, 0, Width, Height) mipmapLevel:0];
+    return true;
+}
+
+unsigned int CountNonZeroRgba(const uint8_t* Rgba, int Width, int Height)
+{
+    unsigned int NonZero = 0;
+    const size_t Bytes = static_cast<size_t>(Width) * Height * 4;
+    for (size_t I = 0; I < Bytes; ++I)
+    {
+        if (Rgba[I] != 0)
+        {
+            ++NonZero;
+        }
+    }
+    return NonZero;
+}
+
 }  // namespace
 
 extern "C" int MagicSR_RunIOSMetalSmoke(const char* ModelPath, const char* OutputDir, char* OutReport, size_t OutReportSize)
@@ -80,21 +101,24 @@ extern "C" int MagicSR_RunIOSMetalSmoke(const char* ModelPath, const char* Outpu
     void* Handle = MC_Init(&Params);
     if (Handle == nullptr)
     {
-        snprintf(OutReport, OutReportSize, "backend=metal step=create ret=-101 model=%s", ModelPath);
+        snprintf(OutReport, OutReportSize, "api=CreateSession/Process backend=metal step=create ret=-101 model=%s", ModelPath);
         return -1;
     }
 
     output_status_params_t Status = {};
     const int QueryRet = MC_Control(Handle, QUERY_STATUS, nullptr, &Status);
-    id<MTLDevice> Device = (__bridge id<MTLDevice>)get_device(Handle);
+    // Prefer the system device (same as Enable smoke). get_device() has returned a
+    // non-nil but unusable pointer on some iOS 26 / UE builds and SIGSEGV'd on
+    // newTextureWithDescriptor.
+    id<MTLDevice> Device = MTLCreateSystemDefaultDevice();
     if (Device == nil)
     {
-        Device = MTLCreateSystemDefaultDevice();
+        Device = (__bridge id<MTLDevice>)get_device(Handle);
     }
     if (Device == nil)
     {
         MC_Uninit(Handle);
-        snprintf(OutReport, OutReportSize, "backend=metal step=device ret=-102");
+        snprintf(OutReport, OutReportSize, "api=CreateSession/Process backend=metal step=device ret=-102");
         return -1;
     }
 
@@ -114,9 +138,9 @@ extern "C" int MagicSR_RunIOSMetalSmoke(const char* ModelPath, const char* Outpu
     InputDesc.usage = MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite;
     id<MTLTexture> InputTexture = [Device newTextureWithDescriptor:InputDesc];
     [InputTexture replaceRegion:MTLRegionMake2D(0, 0, SmokeWidth, SmokeHeight)
-                     mipmapLevel:0
-                       withBytes:Input
-                     bytesPerRow:SmokeWidth];
+                    mipmapLevel:0
+                      withBytes:Input
+                    bytesPerRow:SmokeWidth];
 
     MTLTextureDescriptor* OutputDesc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatR8Unorm
                                                                                           width:SmokeWidth * SmokeScale
@@ -140,10 +164,10 @@ extern "C" int MagicSR_RunIOSMetalSmoke(const char* ModelPath, const char* Outpu
     mkdir(OutputDir, 0775);
     char InputPath[512] = {};
     char OutputPath[512] = {};
-    snprintf(InputPath, sizeof(InputPath), "%s/input_metal_64x64.pgm", OutputDir);
-    snprintf(OutputPath, sizeof(OutputPath), "%s/output_metal_128x128.pgm", OutputDir);
-    const bool WroteInput = WriteGrayPgm(InputPath, Input, SmokeWidth, SmokeHeight);
-    const bool WroteOutput = Output != nullptr && WriteGrayPgm(OutputPath, Output, OutW, OutH);
+    snprintf(InputPath, sizeof(InputPath), "%s/input_metal_64x64.png", OutputDir);
+    snprintf(OutputPath, sizeof(OutputPath), "%s/output_metal_128x128.png", OutputDir);
+    const bool WroteInput = MagicSRSmokePng::WriteR8AsRgbaPng(InputPath, Input, SmokeWidth, SmokeHeight);
+    const bool WroteOutput = Output != nullptr && MagicSRSmokePng::WriteR8AsRgbaPng(OutputPath, Output, OutW, OutH);
 
     unsigned int NonZero = 0;
     if (Output != nullptr)
@@ -163,7 +187,7 @@ extern "C" int MagicSR_RunIOSMetalSmoke(const char* ModelPath, const char* Outpu
 
     snprintf(OutReport,
              OutReportSize,
-             "backend=metal ret=%d query_ret=%d query_after=%d destroy_ret=%d output=%ux%u nonZero=%u wrote_input=%d wrote_output=%d output_path=%s err=0x%llx gpu_time=%f",
+             "api=CreateSession/Process backend=metal ret=%d query_ret=%d query_after=%d destroy_ret=%d output=%ux%u nonZero=%u wrote_input=%d wrote_output=%d output_path=%s err=0x%llx gpu_time=%f",
              ProcessRet,
              QueryRet,
              QueryAfterRet,
@@ -181,45 +205,140 @@ extern "C" int MagicSR_RunIOSMetalSmoke(const char* ModelPath, const char* Outpu
     return Pass ? 0 : -1;
 }
 
-__attribute__((constructor)) static void MagicSR_RunIOSMetalSmokeConstructor()
+extern "C" int MagicSR_RunIOSEnableSmoke(const char* ModelPath, char* OutReport, size_t OutReportSize)
 {
-    @autoreleasepool
+    constexpr int EnableW = 64;
+    constexpr int EnableH = 64;
+    constexpr float EnableScale = 2.0f;
+    constexpr int OutW = EnableW * 2;
+    constexpr int OutH = EnableH * 2;
+
+    if (OutReport == nullptr || OutReportSize == 0)
     {
-        if (!SmokeAutoRunRequested())
-        {
-            return;
-        }
-
-        NSArray<NSString*>* DocumentDirectories =
-            NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-        NSString* DocumentsPath = [DocumentDirectories firstObject];
-        NSString* BundleModelPath =
-            [[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"magic_veryfast_gpu_params.bin"];
-        NSString* DocumentsModelPath =
-            [DocumentsPath stringByAppendingPathComponent:@"MagicSRModels/magic_veryfast_gpu_params.bin"];
-        NSString* FlatModelPath = [DocumentsPath stringByAppendingPathComponent:@"magic_veryfast_gpu_params.bin"];
-        NSString* ModelPath = FirstExistingPath(@[ DocumentsModelPath, FlatModelPath, BundleModelPath ]);
-        NSString* OutputDir = [DocumentsPath stringByAppendingPathComponent:@"MagicSRSmoke"];
-
-        [[NSFileManager defaultManager] createDirectoryAtPath:OutputDir
-                                  withIntermediateDirectories:YES
-                                                   attributes:nil
-                                                        error:nil];
-
-        char Report[1024] = {};
-        const int Ret = MagicSR_RunIOSMetalSmoke([ModelPath fileSystemRepresentation],
-                                                [OutputDir fileSystemRepresentation],
-                                                Report,
-                                                sizeof(Report));
-        if (Ret == 0)
-        {
-            NSLog(@"[MagicSRUESmoke] result=PASS %s", Report);
-            exit(0);
-        }
-
-        NSLog(@"[MagicSRUESmoke] result=FAIL %s", Report);
-        exit(1);
+        return -1;
     }
+    if (ModelPath == nullptr || ModelPath[0] == '\0')
+    {
+        snprintf(OutReport, OutReportSize, "api=Enable ret=-1 step=model_missing");
+        return -1;
+    }
+
+    setenv("MAGIC_SR_MODEL", ModelPath, 1);
+
+    id<MTLDevice> Device = MTLCreateSystemDefaultDevice();
+    if (Device == nil)
+    {
+        snprintf(OutReport, OutReportSize, "api=Enable ret=-102 step=device");
+        return -1;
+    }
+
+    uint8_t Input[EnableW * EnableH * 4] = {};
+    FillSyntheticRgba(Input, EnableW, EnableH);
+
+    id<MTLTexture> InputTexture = CreateRgbaTexture(Device, EnableW, EnableH, Input);
+    if (InputTexture == nil)
+    {
+        snprintf(OutReport, OutReportSize, "api=Enable ret=-106 step=texture");
+        return -1;
+    }
+
+    void* InputPtr = (__bridge void*)InputTexture;
+
+    // MC_Enable
+    void* OutEnable1 = MC_Enable(InputPtr, EnableScale);
+    void* OutEnable2 = MC_Enable(InputPtr, EnableScale);
+    const bool EnableOk = OutEnable1 != nullptr;
+    const bool EnableReused = EnableOk && OutEnable2 == OutEnable1;
+    MC_Disable(nullptr);
+    void* OutEnable3 = MC_Enable(InputPtr, EnableScale);
+    const bool EnableReenabled = OutEnable3 != nullptr;
+
+    uint8_t* EnableOutRgba = static_cast<uint8_t*>(calloc(static_cast<size_t>(OutW * OutH * 4), 1));
+    bool EnableReadback = false;
+    unsigned int EnableNonZero = 0;
+    if (EnableReenabled && EnableOutRgba != nullptr)
+    {
+        EnableReadback = ReadRgbaTexture((__bridge id<MTLTexture>)OutEnable3, EnableOutRgba, OutW, OutH);
+        EnableNonZero = CountNonZeroRgba(EnableOutRgba, OutW, OutH);
+    }
+    MC_Disable(nullptr);
+
+    // MC_Enable_3params
+    void* OutMode = MC_Enable_3params(InputPtr, EnableScale, HIGH_SPEED_MODE);
+    const bool ModeOk = OutMode != nullptr;
+    uint8_t* ModeOutRgba = static_cast<uint8_t*>(calloc(static_cast<size_t>(OutW * OutH * 4), 1));
+    bool ModeReadback = false;
+    unsigned int ModeNonZero = 0;
+    if (ModeOk && ModeOutRgba != nullptr)
+    {
+        ModeReadback = ReadRgbaTexture((__bridge id<MTLTexture>)OutMode, ModeOutRgba, OutW, OutH);
+        ModeNonZero = CountNonZeroRgba(ModeOutRgba, OutW, OutH);
+    }
+    MC_Disable(nullptr);
+
+    // MC_Enable_4params (explicit Metal backend)
+    void* OutEx = MC_Enable_4params(InputPtr, EnableScale, HIGH_SPEED_MODE, MAGIC_BACKEND_METAL);
+    const bool ExOk = OutEx != nullptr;
+    uint8_t* ExOutRgba = static_cast<uint8_t*>(calloc(static_cast<size_t>(OutW * OutH * 4), 1));
+    bool ExReadback = false;
+    unsigned int ExNonZero = 0;
+    if (ExOk && ExOutRgba != nullptr)
+    {
+        ExReadback = ReadRgbaTexture((__bridge id<MTLTexture>)OutEx, ExOutRgba, OutW, OutH);
+        ExNonZero = CountNonZeroRgba(ExOutRgba, OutW, OutH);
+    }
+    MC_Disable(nullptr);
+
+    NSString* Docs = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents/MagicSRSmoke"];
+    [[NSFileManager defaultManager] createDirectoryAtPath:Docs withIntermediateDirectories:YES attributes:nil error:nil];
+    const char* OutputDir = Docs.fileSystemRepresentation;
+
+    char InputPath[512] = {};
+    char EnableOutPath[512] = {};
+    char ModeOutPath[512] = {};
+    char ExOutPath[512] = {};
+    snprintf(InputPath, sizeof(InputPath), "%s/input_enable_64x64.png", OutputDir);
+    snprintf(EnableOutPath, sizeof(EnableOutPath), "%s/output_enable_128x128.png", OutputDir);
+    snprintf(ModeOutPath, sizeof(ModeOutPath), "%s/output_enable_3params_128x128.png", OutputDir);
+    snprintf(ExOutPath, sizeof(ExOutPath), "%s/output_enable_4params_128x128.png", OutputDir);
+
+    const bool WroteInput = MagicSRSmokePng::WriteRgbaPng(InputPath, Input, EnableW, EnableH);
+    const bool WroteEnable =
+        EnableReadback && MagicSRSmokePng::WriteRgbaPng(EnableOutPath, EnableOutRgba, OutW, OutH);
+    const bool WroteMode = ModeReadback && MagicSRSmokePng::WriteRgbaPng(ModeOutPath, ModeOutRgba, OutW, OutH);
+    const bool WroteEx = ExReadback && MagicSRSmokePng::WriteRgbaPng(ExOutPath, ExOutRgba, OutW, OutH);
+
+    free(EnableOutRgba);
+    free(ModeOutRgba);
+    free(ExOutRgba);
+
+    const bool Pass = EnableOk && EnableReused && EnableReenabled && EnableReadback && EnableNonZero > 0 &&
+                      ModeOk && ModeReadback && ModeNonZero > 0 && ExOk && ExReadback && ExNonZero > 0 && WroteInput &&
+                      WroteEnable && WroteMode && WroteEx;
+
+    snprintf(OutReport,
+             OutReportSize,
+             "api=Enable,Enable_3params,Enable_4params enable=%d reused=%d reenabled=%d mode=%d ex=%d "
+             "nonZero=%u/%u/%u wrote=%d/%d/%d/%d in=%dx%d scale=%.1f format=rgba8",
+             EnableOk ? 1 : 0,
+             EnableReused ? 1 : 0,
+             EnableReenabled ? 1 : 0,
+             ModeOk ? 1 : 0,
+             ExOk ? 1 : 0,
+             EnableNonZero,
+             ModeNonZero,
+             ExNonZero,
+             WroteInput ? 1 : 0,
+             WroteEnable ? 1 : 0,
+             WroteMode ? 1 : 0,
+             WroteEx ? 1 : 0,
+             EnableW,
+             EnableH,
+             EnableScale);
+    return Pass ? 0 : -1;
 }
+
+// Auto-run is scheduled from FMagicSRModule::StartupModule (not a native constructor).
+// Early constructors race with UE Metal init and previously SIGSEGV'd on device.
 
 #endif  // MAGIC_SR_IOS

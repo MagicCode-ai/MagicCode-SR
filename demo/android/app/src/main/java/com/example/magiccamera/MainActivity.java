@@ -3,6 +3,7 @@ package com.example.magiccamera;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.Matrix;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -66,11 +67,14 @@ public class MainActivity extends AppCompatActivity {
     private volatile boolean running;
     private long srHandle;
     private int selectedMode = MODE_HIGH_SPEED;
-    private float selectedScale = 2.0f;
+    private volatile float selectedScale = 2.0f;
     private int engineInitWidth = -1;
     private int engineInitHeight = -1;
+    private float engineInitScale = -1.0f;
+    private int engineInitMode = -1;
     private String currentModelPath = "";
-    private byte[] rgbaInput;
+    private byte[] rgbaFull;
+    private byte[] rgbaCrop;
     private byte[] rgbaOutput;
 
     private final Runnable scaleApplyRunnable = this::restartEngine;
@@ -110,6 +114,11 @@ public class MainActivity extends AppCompatActivity {
         synchronized (engineLock) {
             SuperResolutionLib.uninitSuperResolution();
             srHandle = 0;
+            engineInitWidth = -1;
+            engineInitHeight = -1;
+            engineInitScale = -1.0f;
+            engineInitMode = -1;
+            currentModelPath = "";
         }
         cameraExecutor.shutdown();
         super.onDestroy();
@@ -239,8 +248,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void bindAnalyzer() {
+        int targetRotation = getDisplay() != null
+                ? getDisplay().getRotation()
+                : getWindowManager().getDefaultDisplay().getRotation();
         ImageAnalysis analysis = new ImageAnalysis.Builder()
                 .setTargetResolution(new Size(INPUT_WIDTH, INPUT_HEIGHT))
+                .setTargetRotation(targetRotation)
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build();
         analysis.setAnalyzer(cameraExecutor, this::analyzeFrame);
@@ -259,70 +272,124 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         try {
+            final float scale = selectedScale;
             int inW = image.getWidth();
             int inH = image.getHeight();
-            int outW = Math.max(1, Math.round(inW * selectedScale));
-            int outH = Math.max(1, Math.round(inH * selectedScale));
-            ensureBuffers(inW, inH, outW, outH);
-            yuv420ToRgba(image, rgbaInput);
-            ensureEngine(inW, inH);
-            int ret = SuperResolutionLib.processImage(rgbaInput, rgbaOutput, 4, inW, inH, outW, outH);
-            if (ret != 0) {
-                throw new IllegalStateException("MC_Process failed: " + ret);
+            int rotationDegrees = image.getImageInfo().getRotationDegrees();
+            // Magnifier: crop center (1/scale) of the frame, then SR that crop back up.
+            int cropW = evenSize(Math.round(inW / scale), inW);
+            int cropH = evenSize(Math.round(inH / scale), inH);
+            int cropX = (inW - cropW) / 2;
+            int cropY = (inH - cropH) / 2;
+            int outW = Math.max(1, Math.round(cropW * scale));
+            int outH = Math.max(1, Math.round(cropH * scale));
+            ensureBuffers(inW, inH, cropW, cropH, outW, outH);
+            yuv420ToRgba(image, rgbaFull);
+            cropRgba(rgbaFull, inW, inH, cropX, cropY, cropW, cropH, rgbaCrop);
+
+            int ret;
+            synchronized (engineLock) {
+                ensureEngineLocked(cropW, cropH, scale, selectedMode);
+                ret = SuperResolutionLib.processImage(rgbaCrop, rgbaOutput, 4, cropW, cropH, outW, outH);
             }
-            Bitmap bitmap = rgbaToBitmap(rgbaOutput, outW, outH);
+            if (ret != 0) {
+                // Transient failures (e.g. mid-scale rebuild) should not kill the camera.
+                Log.w(TAG, "MC_Enable failed ret=" + ret + " crop=" + cropW + "x" + cropH
+                        + " scale=" + scale + " — skip frame");
+                return;
+            }
+            Bitmap bitmap = rotateBitmap(rgbaToBitmap(rgbaOutput, outW, outH), rotationDegrees);
+            final int displayW = bitmap.getWidth();
+            final int displayH = bitmap.getHeight();
             runOnUiThread(() -> {
+                if (!running) return;
                 outputView.setImageBitmap(bitmap);
-                statusText.setText("mode=" + modeName() + " scale=x" + formatScale(selectedScale)
-                        + " in=" + inW + "x" + inH + " out=" + outW + "x" + outH);
+                statusText.setText("mode=" + modeName() + " scale=x" + formatScale(scale)
+                        + " crop=" + cropW + "x" + cropH
+                        + " out=" + displayW + "x" + displayH
+                        + " rot=" + rotationDegrees);
             });
         } catch (Exception e) {
-            runOnUiThread(() -> stopWithError(e.getMessage()));
+            Log.e(TAG, "analyzeFrame error: " + e.getMessage(), e);
+            runOnUiThread(() -> {
+                if (statusText != null) {
+                    statusText.setText("warn: " + (e.getMessage() != null ? e.getMessage() : "frame failed"));
+                }
+            });
         } finally {
             image.close();
             processingFrame.set(false);
         }
     }
 
-    private void ensureBuffers(int inW, int inH, int outW, int outH) {
-        int inBytes = inW * inH * 4;
+    private void ensureBuffers(int fullW, int fullH, int cropW, int cropH, int outW, int outH) {
+        int fullBytes = fullW * fullH * 4;
+        int cropBytes = cropW * cropH * 4;
         int outBytes = outW * outH * 4;
-        if (rgbaInput == null || rgbaInput.length != inBytes) rgbaInput = new byte[inBytes];
+        if (rgbaFull == null || rgbaFull.length != fullBytes) rgbaFull = new byte[fullBytes];
+        if (rgbaCrop == null || rgbaCrop.length != cropBytes) rgbaCrop = new byte[cropBytes];
         if (rgbaOutput == null || rgbaOutput.length != outBytes) rgbaOutput = new byte[outBytes];
     }
 
-    private void ensureEngine(int width, int height) {
-        synchronized (engineLock) {
-            String modelPath = modelPathForCurrentMode();
-            boolean stale = srHandle == 0
-                    || engineInitWidth != width
-                    || engineInitHeight != height
-                    || !modelPath.equals(currentModelPath);
-            if (!stale) return;
-            SuperResolutionLib.uninitSuperResolution();
-            srHandle = SuperResolutionLib.initSuperResolution(
-                    width,
-                    height,
-                    selectedScale,
-                    selectedMode,
-                    1,
-                    BACKEND_OPENGLES,
-                    modelPath);
-            if (srHandle == 0) {
-                throw new IllegalStateException("MC_Init failed, model=" + modelPath);
-            }
-            engineInitWidth = width;
-            engineInitHeight = height;
-            currentModelPath = modelPath;
+    /** Prefer even sizes for GLES textures; never exceed source size. */
+    private static int evenSize(int desired, int max) {
+        int v = Math.max(2, Math.min(desired, max));
+        return v & ~1;
+    }
+
+    private static void cropRgba(byte[] src, int srcW, int srcH,
+                                 int cropX, int cropY, int cropW, int cropH,
+                                 byte[] dst) {
+        for (int y = 0; y < cropH; y++) {
+            int srcRow = ((cropY + y) * srcW + cropX) * 4;
+            int dstRow = y * cropW * 4;
+            System.arraycopy(src, srcRow, dst, dstRow, cropW * 4);
         }
     }
 
+    /** Caller must hold engineLock. */
+    private void ensureEngineLocked(int width, int height, float scale, int mode) {
+        String modelPath = modelPathForCurrentMode();
+        boolean stale = srHandle == 0
+                || engineInitWidth != width
+                || engineInitHeight != height
+                || engineInitMode != mode
+                || Math.abs(engineInitScale - scale) > 0.0001f
+                || !modelPath.equals(currentModelPath);
+        if (!stale) return;
+        SuperResolutionLib.uninitSuperResolution();
+        srHandle = SuperResolutionLib.initSuperResolution(
+                width,
+                height,
+                scale,
+                mode,
+                1,
+                BACKEND_OPENGLES,
+                modelPath);
+        if (srHandle == 0) {
+            engineInitWidth = -1;
+            engineInitHeight = -1;
+            engineInitScale = -1.0f;
+            engineInitMode = -1;
+            currentModelPath = "";
+            throw new IllegalStateException("MC_Enable setup failed, model=" + modelPath);
+        }
+        engineInitWidth = width;
+        engineInitHeight = height;
+        engineInitScale = scale;
+        engineInitMode = mode;
+        currentModelPath = modelPath;
+    }
+
     private void restartEngine() {
+        // Mark dirty only; actual rebuild happens on the camera thread under engineLock.
+        // Avoid calling MC_Disable from the UI thread while a frame may be in MC_Enable.
         synchronized (engineLock) {
-            SuperResolutionLib.uninitSuperResolution();
             srHandle = 0;
             engineInitWidth = -1;
             engineInitHeight = -1;
+            engineInitScale = -1.0f;
+            engineInitMode = -1;
             currentModelPath = "";
         }
     }
@@ -388,7 +455,15 @@ public class MainActivity extends AppCompatActivity {
 
     private void stopWithError(String message) {
         stopCamera();
-        restartEngine();
+        synchronized (engineLock) {
+            SuperResolutionLib.uninitSuperResolution();
+            srHandle = 0;
+            engineInitWidth = -1;
+            engineInitHeight = -1;
+            engineInitScale = -1.0f;
+            engineInitMode = -1;
+            currentModelPath = "";
+        }
         Log.e(TAG, "stopWithError: " + message);
         if (statusText != null) {
             statusText.setText("error: " + message);
@@ -407,6 +482,13 @@ public class MainActivity extends AppCompatActivity {
             p += 4;
         }
         return Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888);
+    }
+
+    private static Bitmap rotateBitmap(Bitmap bitmap, int rotationDegrees) {
+        if (bitmap == null || rotationDegrees % 360 == 0) return bitmap;
+        Matrix matrix = new Matrix();
+        matrix.postRotate(rotationDegrees);
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
     }
 
     private static void yuv420ToRgba(ImageProxy image, byte[] rgbaOut) {

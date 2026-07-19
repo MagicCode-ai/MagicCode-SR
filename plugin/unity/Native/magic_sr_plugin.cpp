@@ -1,12 +1,14 @@
 #include "magic_sr_plugin.h"
 
+#include <cstdlib>
 #include <cstring>
 
-#include "../../../header/mc_interface.h"
+#include "../../../interface/mc_interface.h"
+#include "../../../interface/mc_enable.h"
 
 namespace {
-constexpr int kMinScale = 1;
-constexpr int kMaxScale = 8;
+constexpr float kMinScale = 1.0f;
+constexpr float kMaxScale = 8.0f;
 constexpr int kMinMode = 0;
 constexpr int kMaxMode = MAX_ALG_MODE - 1;
 constexpr int kDefaultThreads = 1;
@@ -27,7 +29,7 @@ extern "C" const char* MagicSR_GetVersion(void) { return MC_GetVersion(); }
 extern "C" void* MagicSR_Create(const char* model_path,
                                 int width,
                                 int height,
-                                int scaler_factor,
+                                float scaler_factor,
                                 int alg_mode,
                                 int num_threads) {
     return MagicSR_CreateEx(model_path, width, height, scaler_factor, alg_mode, num_threads,
@@ -37,7 +39,7 @@ extern "C" void* MagicSR_Create(const char* model_path,
 extern "C" void* MagicSR_CreateEx(const char* model_path,
                                   int width,
                                   int height,
-                                  int scaler_factor,
+                                  float scaler_factor,
                                   int alg_mode,
                                   int num_threads,
                                   int input_type,
@@ -68,12 +70,59 @@ extern "C" void* MagicSR_CreateEx(const char* model_path,
     std::strncpy(params.model_path, model_path, sizeof(params.model_path) - 1);
     params.width = static_cast<unsigned int>(width);
     params.height = static_cast<unsigned int>(height);
-    params.scaler_factor = static_cast<unsigned int>(scaler_factor);
+    params.scaler_factor = scaler_factor;
     params.alg_mode = static_cast<alg_mode_e>(alg_mode);
     params.num_threads = static_cast<unsigned int>(num_threads);
     params.log_level = MAGIC_LOG_INFO;
     params.backend = static_cast<magic_backend_e>(backend);
     return MC_Init(&params);
+}
+
+extern "C" void MagicSR_SetModelDir(const char* model_dir) {
+    if (model_dir == nullptr || model_dir[0] == '\0') {
+        unsetenv("MAGIC_SR_MODEL_DIR");
+        return;
+    }
+    setenv("MAGIC_SR_MODEL_DIR", model_dir, 1);
+}
+
+extern "C" void MagicSR_SetInputSizeHint(unsigned int width, unsigned int height) {
+    MC_Enable_SetInputSizeHint(width, height);
+}
+
+extern "C" void* MagicSR_Enable_4params(void* input_texture, float scale, int alg_mode, int backend) {
+    if (input_texture == nullptr) {
+        return nullptr;
+    }
+    if (alg_mode < kMinMode || alg_mode > kMaxMode) {
+        return nullptr;
+    }
+    if (!IsValidBackend(backend)) {
+        return nullptr;
+    }
+    const float resolved_scale = scale <= 0.0f ? 2.0f : scale;
+    if (resolved_scale < kMinScale || resolved_scale > kMaxScale) {
+        return nullptr;
+    }
+    return MC_Enable_4params(input_texture,
+                             resolved_scale,
+                             static_cast<alg_mode_e>(alg_mode),
+                             static_cast<magic_backend_e>(backend));
+}
+
+extern "C" void* MagicSR_Enable_3params(void* input_texture, float scale, int alg_mode) {
+    return MagicSR_Enable_4params(input_texture, scale, alg_mode, MAGIC_BACKEND_DEFAULT);
+}
+
+extern "C" void* MagicSR_Enable(void* input_texture, float scale) {
+    return MagicSR_Enable_3params(input_texture, scale, HIGH_SPEED_MODE);
+}
+
+extern "C" int MagicSR_Disable(void* handle) {
+    if (handle == nullptr) {
+        return 0;
+    }
+    return MC_Disable(handle);
 }
 
 extern "C" int MagicSR_Process(void* handle,

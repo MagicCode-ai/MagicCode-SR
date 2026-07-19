@@ -3,7 +3,7 @@
   "Version": 1,
   "VersionName": "0.1.0",
   "FriendlyName": "MagicSR",
-  "Description": "Android super-resolution bridge for libmagic_sr.a",
+  "Description": "Android and iOS super-resolution bridge for libmagic_sr.a",
   "Category": "Rendering",
   "CreatedBy": "MagicSR Plugin",
   "CanContainContent": false,
@@ -14,7 +14,8 @@
       "Type": "Runtime",
       "LoadingPhase": "Default",
       "PlatformAllowList": [
-        "Android"
+        "Android",
+        "IOS"
       ]
     }
   ]

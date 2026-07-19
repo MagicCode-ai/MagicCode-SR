@@ -7,11 +7,17 @@ PROJECT_ROOT=$(cd "$SCRIPT_DIR/../../.." && pwd)
 NDK_PATH=${ANDROID_NDK_HOME:-/Users/joey/Library/Android/sdk/ndk/29.0.14033849}
 TOOLCHAIN="$NDK_PATH/build/cmake/android.toolchain.cmake"
 BUILD_DIR="$SCRIPT_DIR/build"
-STATIC_LIB="$PROJECT_ROOT/lib/android/libmagic_sr.a"
+RELEASE_STATIC_LIB="$PROJECT_ROOT/../release/v1.1.0/lib/android/libmagic_sr.a"
+LEGACY_STATIC_LIB="$PROJECT_ROOT/build/android/build/libmagic_sr.a"
+STATIC_LIB="$RELEASE_STATIC_LIB"
 
 if [ ! -f "$STATIC_LIB" ]; then
-  echo "[MagicSR Unity] Missing Android core library: $STATIC_LIB" >&2
-  exit 1
+  STATIC_LIB="$LEGACY_STATIC_LIB"
+fi
+
+if [ ! -f "$STATIC_LIB" ]; then
+  echo "[MagicSR Unity] libmagic_sr.a missing at release and legacy paths, building core library first..."
+  "$PROJECT_ROOT/build/android/android_build.sh"
 fi
 
 cmake -S "$SCRIPT_DIR" -B "$BUILD_DIR" \

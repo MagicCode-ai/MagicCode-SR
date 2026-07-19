@@ -1,0 +1,35 @@
+# Build / IDE junk
+.DS_Store
+**/.DS_Store
+**/xcuserdata/
+**/*.xcuserstate
+**/.gradle/
+**/.cxx/
+**/build/
+!demo/android/packages/
+!demo/android/packages/**
+**/DerivedData/
+**/Intermediates.noindex/
+**/Build/
+*.apk
+!demo/android/packages/*.apk
+*.ipa
+*.aab
+*.o
+*.obj
+*.dSYM/
+local.properties
+
+# Plugin native build trees
+plugin/unity/Native/build/
+plugin/ue/**/Logs/
+plugin/ue/**/Intermediate/
+plugin/ue/**/Binaries/
+plugin/ue/**/DerivedDataCache/
+plugin/ue/**/Saved/
+
+# Python / editor
+__pycache__/
+*.pyc
+.idea/
+.vscode/

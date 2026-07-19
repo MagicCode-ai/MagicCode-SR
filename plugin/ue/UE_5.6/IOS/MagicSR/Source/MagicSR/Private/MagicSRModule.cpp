@@ -13,6 +13,7 @@
 #include "Modules/ModuleManager.h"
 
 #if MAGIC_SR_IOS
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -20,6 +21,8 @@
 
 extern "C" {
 #include "mc_interface.h"
+int MagicSR_RunIOSMetalSmoke(const char* ModelPath, const char* OutputDir, char* OutReport, size_t OutReportSize);
+int MagicSR_RunIOSEnableSmoke(const char* ModelPath, char* OutReport, size_t OutReportSize);
 }
 #endif
 
@@ -131,11 +134,11 @@ void RunIOSSmokeTestIfRequested()
     bHasRun = true;
 
     FString ModelPath = FPaths::Combine(FPaths::ProjectContentDir(),
-                                        TEXT("MagicSRModels/magic_veryfastx2_cpu_params.bin"));
-    const FString BundleModelPath = BuildIOSBundlePath(TEXT("magic_veryfastx2_cpu_params.bin"));
+                                        TEXT("MagicSRModels/magic_veryfast_gpu_params.bin"));
+    const FString BundleModelPath = BuildIOSBundlePath(TEXT("magic_veryfast_gpu_params.bin"));
     const FString DocumentsModelPath =
-        BuildIOSDocumentsPath(TEXT("Documents/MagicSRModels/magic_veryfastx2_cpu_params.bin"));
-    const FString FlatModelPath = BuildIOSDocumentsPath(TEXT("Documents/magic_veryfastx2_cpu_params.bin"));
+        BuildIOSDocumentsPath(TEXT("Documents/MagicSRModels/magic_veryfast_gpu_params.bin"));
+    const FString FlatModelPath = BuildIOSDocumentsPath(TEXT("Documents/magic_veryfast_gpu_params.bin"));
     const FString OutputDir = BuildIOSDocumentsPath(TEXT("Documents/MagicSRSmoke"));
     const FString InputPath = OutputDir / TEXT("input_64x64.pgm");
     const FString OutputPath = OutputDir / TEXT("output_128x128.pgm");
@@ -178,121 +181,50 @@ void RunIOSSmokeTestIfRequested()
     }
     ModelPath = NormalizeIOSPathForMagicSR(ModelPath);
 
-    const FString Version = UMagicSRBlueprintLibrary::GetVersion();
-    FTCHARToUTF8 ModelPathUtf8(*ModelPath);
-    const magic_backend_e BackendsToTry[] = {MAGIC_BACKEND_NEON, MAGIC_BACKEND_DEFAULT, MAGIC_BACKEND_METAL};
-    void* Handle = nullptr;
-    magic_backend_e SelectedBackend = MAGIC_BACKEND_NEON;
-    for (magic_backend_e Backend : BackendsToTry)
     {
-        input_param_t Params;
-        memset(&Params, 0, sizeof(Params));
-        Params.input_type = INPUT_BUFFER;
-        strncpy(Params.model_path, ModelPathUtf8.Get(), sizeof(Params.model_path) - 1);
-        Params.width = static_cast<unsigned int>(InputWidth);
-        Params.height = static_cast<unsigned int>(InputHeight);
-        Params.scaler_factor = static_cast<unsigned int>(Scale);
-        Params.alg_mode = HIGH_SPEED_MODE;
-        Params.num_threads = static_cast<unsigned int>(NumThreads);
-        Params.log_level = MAGIC_LOG_INFO;
-        Params.backend = Backend;
+        FTCHARToUTF8 MetalModelPathUtf8(*ModelPath);
+        FTCHARToUTF8 OutputDirUtf8(*OutputDir);
 
-        UE_LOG(LogTemp,
-               Display,
-               TEXT("[MagicSRUESmoke] trying backend=%d model_utf8_len=%d"),
-               static_cast<int32>(Backend),
-               ModelPathUtf8.Length());
-        Handle = MC_Init(&Params);
-        if (Handle != nullptr)
+        // Run CreateSession/Process first so Enable's session cache cannot affect it.
+        char Report[1024] = {};
+        const int32 MetalRet = MagicSR_RunIOSMetalSmoke(MetalModelPathUtf8.Get(), OutputDirUtf8.Get(), Report, sizeof(Report));
+        const bool bMetalPass = MetalRet == 0;
+        if (bMetalPass)
         {
-            SelectedBackend = Backend;
-            break;
+            UE_LOG(LogTemp,
+                   Display,
+                   TEXT("[MagicSRUESmoke] result=PASS version=%s model=%s %s"),
+                   *UMagicSRBlueprintLibrary::GetVersion(),
+                   *ModelPath,
+                   UTF8_TO_TCHAR(Report));
         }
-    }
-    if (Handle == nullptr)
-    {
-        UE_LOG(LogTemp, Error, TEXT("[MagicSRUESmoke] result=FAIL step=create version=%s model=%s"), *Version, *ModelPath);
-        FPlatformMisc::RequestExitWithStatus(false, 1, TEXT("MagicSR iOS smoke create failed"));
-        return;
-    }
-
-    output_status_params_t Status = {};
-    const int32 QueryRet = MC_Control(Handle, QUERY_STATUS, nullptr, &Status);
-
-    TArray<uint8> Input;
-    Input.SetNumUninitialized(InputWidth * InputHeight);
-    for (int32 Y = 0; Y < InputHeight; ++Y)
-    {
-        for (int32 X = 0; X < InputWidth; ++X)
+        else
         {
-            Input[Y * InputWidth + X] = static_cast<uint8>((X * 3 + Y * 5) & 0xff);
+            UE_LOG(LogTemp,
+                   Error,
+                   TEXT("[MagicSRUESmoke] result=FAIL version=%s model=%s %s"),
+                   *UMagicSRBlueprintLibrary::GetVersion(),
+                   *ModelPath,
+                   UTF8_TO_TCHAR(Report));
         }
-    }
+        fprintf(stderr, "[MagicSRUESmoke] result=%s %s\n", bMetalPass ? "PASS" : "FAIL", Report);
 
-    TArray<uint8> Output;
-    Output.SetNumZeroed(InputWidth * Scale * InputHeight * Scale);
-    const int32 ProcessRet = MC_Process(Handle, Input.GetData(), Output.GetData());
-    output_status_params_t StatusAfter = {};
-    const int32 QueryAfterRet = MC_Control(Handle, QUERY_STATUS, nullptr, &StatusAfter);
-    const int32 DestroyRet = MC_Uninit(Handle);
-
-    FTCHARToUTF8 OutputDirUtf8(*OutputDir);
-    mkdir(OutputDirUtf8.Get(), 0775);
-    const bool bWroteInput = WriteGrayPgm(InputPath, Input, InputWidth, InputHeight);
-    const bool bWroteOutput = WriteGrayPgm(OutputPath, Output, InputWidth * Scale, InputHeight * Scale);
-
-    int32 NonZero = 0;
-    for (uint8 Value : Output)
-    {
-        if (Value != 0)
+        char EnableReport[512] = {};
+        const int32 EnableRet = MagicSR_RunIOSEnableSmoke(MetalModelPathUtf8.Get(), EnableReport, sizeof(EnableReport));
+        const bool bEnablePass = EnableRet == 0;
+        if (bEnablePass)
         {
-            ++NonZero;
+            UE_LOG(LogTemp, Display, TEXT("[MagicSREnableSmoke] result=PASS %s"), UTF8_TO_TCHAR(EnableReport));
         }
-    }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("[MagicSREnableSmoke] result=FAIL %s"), UTF8_TO_TCHAR(EnableReport));
+        }
+        fprintf(stderr, "[MagicSREnableSmoke] result=%s %s\n", bEnablePass ? "PASS" : "FAIL", EnableReport);
 
-    const bool bPass = QueryRet == 0 && ProcessRet == 0 && QueryAfterRet == 0 && NonZero > 0 && bWroteInput &&
-                       bWroteOutput && StatusAfter.error_code == 0;
-    if (bPass)
-    {
-        UE_LOG(LogTemp,
-               Display,
-               TEXT("[MagicSRUESmoke] result=PASS version=%s model=%s backend=%d query_ret=%d process_ret=%d query_after=%d destroy_ret=%d output=%dx%d nonZero=%d wrote_input=%d wrote_output=%d output_path=%s err=0x%llx"),
-               *Version,
-               *ModelPath,
-               static_cast<int32>(SelectedBackend),
-               QueryRet,
-               ProcessRet,
-               QueryAfterRet,
-               DestroyRet,
-               Status.output_width,
-               Status.output_height,
-               NonZero,
-               bWroteInput ? 1 : 0,
-               bWroteOutput ? 1 : 0,
-               *OutputPath,
-               static_cast<unsigned long long>(StatusAfter.error_code));
+        const bool bAllPass = bMetalPass && bEnablePass;
+        FPlatformMisc::RequestExitWithStatus(false, bAllPass ? 0 : 1, TEXT("MagicSR iOS smoke complete"));
     }
-    else
-    {
-        UE_LOG(LogTemp,
-               Error,
-               TEXT("[MagicSRUESmoke] result=FAIL version=%s model=%s backend=%d query_ret=%d process_ret=%d query_after=%d destroy_ret=%d output=%dx%d nonZero=%d wrote_input=%d wrote_output=%d output_path=%s err=0x%llx"),
-               *Version,
-               *ModelPath,
-               static_cast<int32>(SelectedBackend),
-               QueryRet,
-               ProcessRet,
-               QueryAfterRet,
-               DestroyRet,
-               Status.output_width,
-               Status.output_height,
-               NonZero,
-               bWroteInput ? 1 : 0,
-               bWroteOutput ? 1 : 0,
-               *OutputPath,
-               static_cast<unsigned long long>(StatusAfter.error_code));
-    }
-    FPlatformMisc::RequestExitWithStatus(false, bPass ? 0 : 1, TEXT("MagicSR iOS smoke complete"));
 }
 
 #endif

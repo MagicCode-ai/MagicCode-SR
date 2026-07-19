@@ -41,7 +41,7 @@ namespace MagicSR.UnityPlugin
         public uint Height;
         public uint OutputWidth;
         public uint OutputHeight;
-        public uint ScalerFactor;
+        public float ScalerFactor;
         public uint AlgMode;
         public uint InputType;
         public uint Backend;
@@ -55,7 +55,7 @@ namespace MagicSR.UnityPlugin
     {
         public uint Width;
         public uint Height;
-        public uint ScalerFactor;
+        public float ScalerFactor;
         public uint AlgMode;
 
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
@@ -78,7 +78,7 @@ namespace MagicSR.UnityPlugin
             string modelPath,
             int width,
             int height,
-            int scalerFactor,
+            float scalerFactor,
             int algMode,
             int numThreads);
 
@@ -87,11 +87,29 @@ namespace MagicSR.UnityPlugin
             string modelPath,
             int width,
             int height,
-            int scalerFactor,
+            float scalerFactor,
             int algMode,
             int numThreads,
             int inputType,
             int backend);
+
+        [DllImport(NativeLibraryName)]
+        private static extern void MagicSR_SetModelDir(string modelDir);
+
+        [DllImport(NativeLibraryName)]
+        private static extern void MagicSR_SetInputSizeHint(uint width, uint height);
+
+        [DllImport(NativeLibraryName)]
+        private static extern IntPtr MagicSR_Enable(IntPtr inputTexture, float scale);
+
+        [DllImport(NativeLibraryName)]
+        private static extern IntPtr MagicSR_Enable_3params(IntPtr inputTexture, float scale, int algMode);
+
+        [DllImport(NativeLibraryName)]
+        private static extern IntPtr MagicSR_Enable_4params(IntPtr inputTexture, float scale, int algMode, int backend);
+
+        [DllImport(NativeLibraryName)]
+        private static extern int MagicSR_Disable(IntPtr handle);
 
         [DllImport(NativeLibraryName)]
         private static extern int MagicSR_Process(
@@ -133,7 +151,7 @@ namespace MagicSR.UnityPlugin
             return ptr == IntPtr.Zero ? "unknown" : Marshal.PtrToStringAnsi(ptr);
         }
 
-        public bool Create(string modelPath, int width, int height, int scale, MagicSRAlgMode mode, int numThreads = 1)
+        public bool Create(string modelPath, int width, int height, float scale, MagicSRAlgMode mode, int numThreads = 1)
         {
             Destroy();
             _handle = MagicSR_Create(modelPath, width, height, scale, (int)mode, numThreads);
@@ -144,7 +162,7 @@ namespace MagicSR.UnityPlugin
             string modelPath,
             int width,
             int height,
-            int scale,
+            float scale,
             MagicSRAlgMode mode,
             MagicSRInputType inputType,
             MagicSRBackend backend,
@@ -161,6 +179,53 @@ namespace MagicSR.UnityPlugin
                 (int)inputType,
                 (int)backend);
             return _handle != IntPtr.Zero;
+        }
+
+        /// <summary>
+        /// Tell MC_Enable where to look for model bins (directory containing magic_veryfast_*_params.bin).
+        /// Call before Enable when models live under StreamingAssets / persistentDataPath.
+        /// </summary>
+        public static void SetModelDir(string modelDir)
+        {
+            MagicSR_SetModelDir(modelDir ?? string.Empty);
+        }
+
+        /// <summary>
+        /// Optional size hint before Enable* (required for Android Vulkan size query).
+        /// </summary>
+        public static void SetInputSizeHint(int width, int height)
+        {
+            MagicSR_SetInputSizeHint((uint)Math.Max(0, width), (uint)Math.Max(0, height));
+        }
+
+        /// <summary>
+        /// Process one SR frame via native MC_Enable (session reused when scale/size/mode/backend unchanged).
+        /// Returns a borrowed output GPU texture pointer owned by the native library until Disable().
+        /// Do not FreeHGlobal / free / CFRelease / glDelete this pointer — release only via Disable().
+        /// </summary>
+        public IntPtr Enable(IntPtr inputTexture, float scale)
+        {
+            return MagicSR_Enable(inputTexture, scale);
+        }
+
+        public IntPtr Enable_3params(IntPtr inputTexture, float scale, MagicSRAlgMode mode)
+        {
+            return MagicSR_Enable_3params(inputTexture, scale, (int)mode);
+        }
+
+        public IntPtr Enable_4params(IntPtr inputTexture, float scale, MagicSRAlgMode mode, MagicSRBackend backend)
+        {
+            return MagicSR_Enable_4params(inputTexture, scale, (int)mode, (int)backend);
+        }
+
+        /// <summary>
+        /// Tear down the MC_Enable singleton session and its output texture.
+        /// This is the only valid way to release the pointer returned by Enable*.
+        /// </summary>
+        public void Disable()
+        {
+            MagicSR_Disable(IntPtr.Zero);
+            _handle = IntPtr.Zero;
         }
 
         public int Process(byte[] inputY, byte[] outputY)
@@ -181,7 +246,7 @@ namespace MagicSR.UnityPlugin
             return MagicSR_ProcessTexture(_handle, inputTexture, outputTexture);
         }
 
-        public int SetParam(string modelPath, int width, int height, int scale, MagicSRAlgMode mode)
+        public int SetParam(string modelPath, int width, int height, float scale, MagicSRAlgMode mode)
         {
             if (_handle == IntPtr.Zero)
             {
@@ -192,7 +257,7 @@ namespace MagicSR.UnityPlugin
             {
                 Width = (uint)width,
                 Height = (uint)height,
-                ScalerFactor = (uint)scale,
+                ScalerFactor = scale < 1f ? 1f : (scale > 8f ? 8f : scale),
                 AlgMode = (uint)mode,
                 ModelPath = modelPath ?? string.Empty
             };

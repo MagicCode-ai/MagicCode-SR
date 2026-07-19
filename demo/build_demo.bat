@@ -3,16 +3,19 @@ setlocal enableextensions
 
 set "ROOT=%~dp0"
 if "%ROOT:~-1%"=="\" set "ROOT=%ROOT:~0,-1%"
+set "REPO_ROOT=%ROOT%\.."
 
 set "ANDROID_DIR=%ROOT%\android"
 set "GRADLEW=%ANDROID_DIR%\gradlew.bat"
 set "ASSETS_MODEL_DIR=%ANDROID_DIR%\app\src\main\assets\model"
-set "MODEL_DIR=%ROOT%\..\model"
-set "ANDROID_LIB_DIR=%ROOT%\..\lib\android"
-set "IOS_LIB_DIR=%ROOT%\..\lib\ios"
-set "HEADER_DIR=%ROOT%\..\header"
+set "MODEL_DIR=%REPO_ROOT%\model"
+set "ANDROID_LIB_DIR=%REPO_ROOT%\lib\android"
+set "IOS_LIB_DIR=%REPO_ROOT%\lib\ios"
+set "INTERFACE_DIR=%REPO_ROOT%\interface"
+set "PACKAGES_DIR=%ANDROID_DIR%\packages"
 
-echo [INFO] Root: %ROOT%
+echo [INFO] Demo root: %ROOT%
+echo [INFO] Repo root: %REPO_ROOT%
 
 if not exist "%GRADLEW%" (
   echo [ERROR] gradlew.bat not found: %GRADLEW%
@@ -21,21 +24,16 @@ if not exist "%GRADLEW%" (
 
 call :require_file "%ANDROID_LIB_DIR%\libmagic_sr.a"
 call :require_file "%IOS_LIB_DIR%\libmagic_sr.a"
-call :require_file "%HEADER_DIR%\mc_interface.h"
+call :require_file "%INTERFACE_DIR%\mc_interface.h"
+call :require_file "%INTERFACE_DIR%\mc_enable.h"
 
 call :require_file "%MODEL_DIR%\magic_gles_highspeed_gpu_params.bin"
 call :require_file "%MODEL_DIR%\magic_gles_speed_gpu_params.bin"
 call :require_file "%MODEL_DIR%\magic_metal_highspeed_gpu_params.bin"
 call :require_file "%MODEL_DIR%\magic_metal_speed_gpu_params.bin"
 
-if not exist "%ASSETS_MODEL_DIR%" (
-  echo [INFO] Creating Android assets model directory...
-  mkdir "%ASSETS_MODEL_DIR%"
-  if errorlevel 1 (
-    echo [ERROR] Failed to create directory: %ASSETS_MODEL_DIR%
-    exit /b 1
-  )
-)
+if not exist "%ASSETS_MODEL_DIR%" mkdir "%ASSETS_MODEL_DIR%"
+if not exist "%PACKAGES_DIR%" mkdir "%PACKAGES_DIR%"
 
 echo [INFO] Copying Android model files...
 copy /Y "%MODEL_DIR%\magic_gles_highspeed_gpu_params.bin" "%ASSETS_MODEL_DIR%\" >nul
@@ -59,10 +57,13 @@ if errorlevel 1 (
 )
 popd
 
+copy /Y "%ANDROID_DIR%\app\build\outputs\apk\debug\app-debug.apk" "%PACKAGES_DIR%\MagicMagnifierSR-android-arm64.apk" >nul
+
 echo.
 echo [SUCCESS] Android build complete.
-echo [SUCCESS] APK: %ANDROID_DIR%\app\build\outputs\apk\debug\app-debug.apk
-echo [INFO] iOS build should be done on macOS via Xcode (see README.md).
+echo [SUCCESS] APK: %PACKAGES_DIR%\MagicMagnifierSR-android-arm64.apk
+echo [INFO] Install: adb install -r "%PACKAGES_DIR%\MagicMagnifierSR-android-arm64.apk"
+echo [INFO] iOS: open demo\ios\MagicCameraSR.xcodeproj, or see README for packaging notes.
 exit /b 0
 
 :require_file
