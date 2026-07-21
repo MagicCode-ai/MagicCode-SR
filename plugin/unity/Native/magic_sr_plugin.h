@@ -49,8 +49,12 @@ void* MagicSR_CreateEx(const char* model_path,
                        int input_type,
                        int backend);
 
-/** Optional: set MAGIC_SR_MODEL_DIR for MC_Enable model resolution (e.g. Unity persistentDataPath/MagicSRModels). */
+/** Set model directory for MC_Enable (wraps MC_Enable_SetModelDir). */
 void MagicSR_SetModelDir(const char* model_dir);
+
+/** Set full path to one model .bin for MC_Enable (wraps MC_Enable_SetModelPath). */
+void MagicSR_SetModelPath(const char* model_path);
+
 
 /** Optional: hint input WxH before Enable* (needed for Android Vulkan). Pass 0,0 to clear. */
 void MagicSR_SetInputSizeHint(unsigned int width, unsigned int height);

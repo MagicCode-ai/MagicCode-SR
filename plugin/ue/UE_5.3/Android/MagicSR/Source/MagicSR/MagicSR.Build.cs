@@ -5,14 +5,21 @@ public class MagicSR : ModuleRules
 {
     private static bool HasAnyMagicLibrary(string candidateRoot)
     {
+        string enableAndroid = Path.Combine(candidateRoot, "lib/android/libmagic_sr_enable.a");
+        string enableIOS = Path.Combine(candidateRoot, "lib/ios/libmagic_sr_enable.a");
+        string buildEnableAndroid = Path.Combine(candidateRoot, "build/android/build/libmagic_sr_enable.a");
+        string buildEnableIOS = Path.Combine(candidateRoot, "build/ipad/magic_sr/Release-iphoneos/libmagic_sr_enable.a");
         string legacyAndroid = Path.Combine(candidateRoot, "build/android/build/libmagic_sr.a");
         string legacyIOS = Path.Combine(candidateRoot, "build/ipad/magic_sr/Release-iphoneos/libmagic_sr.a");
-        string releaseAndroid = Path.GetFullPath(Path.Combine(candidateRoot, "../release/v1.1.0/lib/android/libmagic_sr.a"));
-        string releaseIOS = Path.GetFullPath(Path.Combine(candidateRoot, "../release/v1.1.0/lib/ios/libmagic_sr.a"));
+        string releaseAndroid = Path.GetFullPath(Path.Combine(candidateRoot, "../release/v1.1.0/lib/android/libmagic_sr_enable.a"));
+        string releaseIOS = Path.GetFullPath(Path.Combine(candidateRoot, "../release/v1.1.0/lib/ios/libmagic_sr_enable.a"));
         string releaseMac = Path.GetFullPath(Path.Combine(candidateRoot, "../release/v1.1.0/lib/mac_arm/libmagic_sr.a"));
         string releaseWin = Path.GetFullPath(Path.Combine(candidateRoot, "../release/v1.1.0/lib/windows/libmagic_sr.lib"));
-        return File.Exists(legacyAndroid) || File.Exists(legacyIOS) || File.Exists(releaseAndroid) ||
-               File.Exists(releaseIOS) || File.Exists(releaseMac) || File.Exists(releaseWin);
+        return File.Exists(enableAndroid) || File.Exists(enableIOS) ||
+               File.Exists(buildEnableAndroid) || File.Exists(buildEnableIOS) ||
+               File.Exists(legacyAndroid) || File.Exists(legacyIOS) ||
+               File.Exists(releaseAndroid) || File.Exists(releaseIOS) ||
+               File.Exists(releaseMac) || File.Exists(releaseWin);
     }
 
     private static string ResolveMagicLibrary(string projectRoot, params string[] relativeCandidates)
@@ -77,12 +84,53 @@ public class MagicSR : ModuleRules
         }
         PublicIncludePaths.Add(magicIncludeDir);
 
+        // Android/iOS: link libmagic_sr_enable.a (core + MC_Enable). Do not compile mc_enable.c.
+        // Other platforms: keep compiling mc_enable into the plugin with core-only lib.
+        bool linksEnableLib =
+            Target.Platform == UnrealTargetPlatform.Android ||
+            Target.Platform == UnrealTargetPlatform.IOS;
+
+        if (!linksEnableLib)
+        {
+            string enableC = Path.Combine(magicInterfaceDir, "mc_enable.c");
+            string privateDir = Path.Combine(ModuleDirectory, "Private");
+            Directory.CreateDirectory(privateDir);
+            if (File.Exists(enableC))
+            {
+                File.Copy(enableC, Path.Combine(privateDir, "mc_enable.c"), true);
+            }
+            string enableMetal = Path.Combine(magicInterfaceDir, "mc_enable_metal.m");
+            if (File.Exists(enableMetal))
+            {
+                string iosDir = Path.Combine(privateDir, "IOS");
+                Directory.CreateDirectory(iosDir);
+                File.Copy(enableMetal, Path.Combine(iosDir, "mc_enable_metal.m"), true);
+            }
+        }
+        else
+        {
+            // Avoid leftover sources from older plugin layouts causing duplicate MC_Enable.
+            string privateDir = Path.Combine(ModuleDirectory, "Private");
+            string staleEnable = Path.Combine(privateDir, "mc_enable.c");
+            string staleMetal = Path.Combine(privateDir, "IOS", "mc_enable_metal.m");
+            if (File.Exists(staleEnable))
+            {
+                File.Delete(staleEnable);
+            }
+            if (File.Exists(staleMetal))
+            {
+                File.Delete(staleMetal);
+            }
+        }
+
+
         if (Target.Platform == UnrealTargetPlatform.Android)
         {
             string magicAndroidStaticLib = ResolveMagicLibrary(
                 projectRoot,
-                "build/android/build/libmagic_sr.a",
-                "../release/v1.1.0/lib/android/libmagic_sr.a");
+                "lib/android/libmagic_sr_enable.a",
+                "build/android/build/libmagic_sr_enable.a",
+                "../release/v1.1.0/lib/android/libmagic_sr_enable.a");
             PublicAdditionalLibraries.Add(magicAndroidStaticLib);
             PublicSystemLibraries.Add("log");
             PublicSystemLibraries.Add("android");
@@ -91,6 +139,9 @@ public class MagicSR : ModuleRules
             PublicSystemLibraries.Add("vulkan");
             PublicSystemLibraries.Add("z");
             PublicDefinitions.Add("MAGIC_SR_ANDROID=1");
+            PublicDefinitions.Add("SYS_ANDROID=1");
+            PublicDefinitions.Add("VULKAN=1");
+            PublicDefinitions.Add("OpenGLES=1");
             PublicDefinitions.Add("MAGIC_SR_IOS=0");
             PublicDefinitions.Add("MAGIC_SR_MAC=0");
             PublicDefinitions.Add("MAGIC_SR_WINDOWS=0");
@@ -99,8 +150,9 @@ public class MagicSR : ModuleRules
         {
             string magicIOSStaticLib = ResolveMagicLibrary(
                 projectRoot,
-                "build/ipad/magic_sr/Release-iphoneos/libmagic_sr.a",
-                "../release/v1.1.0/lib/ios/libmagic_sr.a");
+                "lib/ios/libmagic_sr_enable.a",
+                "build/ipad/magic_sr/Release-iphoneos/libmagic_sr_enable.a",
+                "../release/v1.1.0/lib/ios/libmagic_sr_enable.a");
             PublicAdditionalLibraries.Add(magicIOSStaticLib);
             PublicFrameworks.AddRange(
                 new[]

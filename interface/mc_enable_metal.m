@@ -6,8 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-extern void* get_device(void* handle);
-
 /* Set by mc_enable.c so a stolen release can clear the cached pointer before abort. */
 void mc_enable_note_output_stolen(void* output);
 
@@ -91,8 +89,9 @@ int mc_enable_resolve_bundle_model(char* out_path, size_t out_size)
     return -1;
 }
 
-void* mc_enable_metal_acquire_output(void* gpu_handle, unsigned int out_w, unsigned int out_h, int prefer_r8)
+void* mc_enable_metal_acquire_output(void* input_texture, unsigned int out_w, unsigned int out_h, int prefer_r8)
 {
+    id<MTLTexture> input;
     id<MTLDevice> device;
     MTLPixelFormat format;
     MTLTextureDescriptor* desc;
@@ -100,12 +99,14 @@ void* mc_enable_metal_acquire_output(void* gpu_handle, unsigned int out_w, unsig
     MCEnableOutputGuard* guard;
     void* out;
 
-    if (gpu_handle == NULL || out_w == 0 || out_h == 0)
+    if (input_texture == NULL || out_w == 0 || out_h == 0)
     {
         return NULL;
     }
 
-    device = (__bridge id<MTLDevice>)get_device(gpu_handle);
+    /* Same pattern as GLES: create output on the caller's GPU device (from input). */
+    input = (__bridge id<MTLTexture>)input_texture;
+    device = input.device;
     if (device == nil)
     {
         return NULL;
@@ -116,6 +117,8 @@ void* mc_enable_metal_acquire_output(void* gpu_handle, unsigned int out_w, unsig
                                                               width:out_w
                                                              height:out_h
                                                           mipmapped:NO];
+    /* Shared so callers (e.g. camera demo UIImage readback) can getBytes safely. */
+    desc.storageMode = MTLStorageModeShared;
     desc.usage = MTLTextureUsageShaderWrite | MTLTextureUsageShaderRead | MTLTextureUsageRenderTarget;
     tex = [device newTextureWithDescriptor:desc];
     if (tex == nil)

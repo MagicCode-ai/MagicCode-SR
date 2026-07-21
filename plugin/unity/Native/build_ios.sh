@@ -10,45 +10,38 @@ OUT_LIB="$BUILD_DIR/libmagic_sr_unity_ios.a"
 IOS_MIN_VERSION=${IOS_MIN_VERSION:-15.6}
 IOS_SDK=${IOS_SDK:-iphoneos}
 
-CORE_PROJECT="$PROJECT_ROOT/build/ipad/magic_sr/magic_sr.xcodeproj"
-RELEASE_CORE_LIB="$PROJECT_ROOT/../release/v1.1.0/lib/ios/libmagic_sr.a"
-LEGACY_CORE_LIB="$PROJECT_ROOT/build/ipad/magic_sr/Release-iphoneos/libmagic_sr.a"
-CORE_LIB="$RELEASE_CORE_LIB"
+# Prefer combined Enable+core library so apps do not compile mc_enable themselves.
+resolve_enable_lib() {
+  local candidates=(
+    "$PROJECT_ROOT/lib/ios/libmagic_sr_enable.a"
+    "$PROJECT_ROOT/build/ipad/magic_sr/Release-iphoneos/libmagic_sr_enable.a"
+    "$PROJECT_ROOT/../release/v1.1.0/lib/ios/libmagic_sr_enable.a"
+    "$PROJECT_ROOT/../github/MagicCode-SR/lib/ios/libmagic_sr_enable.a"
+  )
+  local c
+  for c in "${candidates[@]}"; do
+    if [ -f "$c" ]; then
+      echo "$c"
+      return 0
+    fi
+  done
+  return 1
+}
 
-if [ ! -f "$CORE_LIB" ]; then
-  CORE_LIB="$LEGACY_CORE_LIB"
-fi
-
-COMMON_HEADER_SEARCH_PATHS="$PROJECT_ROOT/interface $PROJECT_ROOT/src $PROJECT_ROOT/src/metal"
-COMMON_DEFINES="SYS_IOS=1 HAVE_NEON=1"
-
-mkdir -p "$OBJ_DIR"
-
-if [ ! -f "$CORE_LIB" ]; then
-  echo "[MagicSR Unity iOS] Core library not found in release/legacy paths, building MagicSR core library..."
-  xcodebuild \
-    -project "$CORE_PROJECT" \
-    -scheme magic_sr \
-    -configuration Release \
-    -sdk "$IOS_SDK" \
-    build \
-    HEADER_SEARCH_PATHS="$COMMON_HEADER_SEARCH_PATHS" \
-    GCC_PREPROCESSOR_DEFINITIONS="$COMMON_DEFINES" \
-    IPHONEOS_DEPLOYMENT_TARGET="$IOS_MIN_VERSION" \
-    CODE_SIGNING_ALLOWED=NO
-  CORE_LIB="$LEGACY_CORE_LIB"
-fi
-
-if [ ! -f "$CORE_LIB" ]; then
-  echo "[MagicSR Unity iOS] Missing core library: $CORE_LIB" >&2
+ENABLE_LIB=$(resolve_enable_lib || true)
+if [ -z "${ENABLE_LIB:-}" ]; then
+  echo "[MagicSR Unity iOS] Missing libmagic_sr_enable.a. Run tools/build_enable_lib.sh ios first." >&2
   exit 1
 fi
+
+mkdir -p "$OBJ_DIR"
 
 SDK_PATH=$(xcrun --sdk "$IOS_SDK" --show-sdk-path)
 CXX=$(xcrun --sdk "$IOS_SDK" --find clang++)
 LIBTOOL=$(xcrun --sdk "$IOS_SDK" --find libtool)
 
-echo "[MagicSR Unity iOS] Compiling Unity wrapper..."
+echo "[MagicSR Unity iOS] Using enable lib: $ENABLE_LIB"
+echo "[MagicSR Unity iOS] Compiling Unity wrapper only (MC_Enable is inside libmagic_sr_enable.a)..."
 "$CXX" \
   -arch arm64 \
   -isysroot "$SDK_PATH" \
@@ -58,12 +51,21 @@ echo "[MagicSR Unity iOS] Compiling Unity wrapper..."
   -DSYS_IOS=1 \
   -DHAVE_NEON=1 \
   -I"$SCRIPT_DIR" \
+  -I"$PROJECT_ROOT/interface" \
   -I"$PROJECT_ROOT/src" \
   -I"$PROJECT_ROOT/src/metal" \
   -c "$SCRIPT_DIR/magic_sr_plugin.cpp" \
   -o "$OBJ_DIR/magic_sr_plugin.o"
 
 echo "[MagicSR Unity iOS] Creating static library..."
-"$LIBTOOL" -static -o "$OUT_LIB" "$OBJ_DIR/magic_sr_plugin.o" "$CORE_LIB"
+"$LIBTOOL" -static -o "$OUT_LIB" \
+  "$OBJ_DIR/magic_sr_plugin.o" \
+  "$ENABLE_LIB"
+
+# Sanity: plugin .a must export MC_Enable (from enable lib) and MagicSR plugin symbols.
+if ! nm -gU "$OUT_LIB" 2>/dev/null | grep -q 'T _MC_Enable'; then
+  echo "[MagicSR Unity iOS] ERROR: MC_Enable missing in $OUT_LIB" >&2
+  exit 1
+fi
 
 echo "[MagicSR Unity iOS] Done. Output: $OUT_LIB"

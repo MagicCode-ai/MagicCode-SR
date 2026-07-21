@@ -11,8 +11,8 @@ The plugin supports:
 
 Core native libraries used by this plugin:
 
-- Android: `lib/android/libmagic_sr.a`
-- iOS: `lib/ios/libmagic_sr.a`
+- Android: `lib/android/libmagic_sr_enable.a` (core + `MC_Enable`)
+- iOS: `lib/ios/libmagic_sr_enable.a` (core + `MC_Enable`)
 
 ## 2) Deliverables
 
@@ -54,7 +54,13 @@ Blueprint: **MagicSR → Easy → Enable** / **Disable**
 
 For camera / SceneColor: resolve the color to a native GPU texture handle, then call the same `Enable(InputNativeTexture, Scale)`.
 
-Place models under `Content/MagicSRModels/magic_veryfast_gpu_params.bin`.
+**Models:** put `.bin` files under project `Content/MagicSRModels/` for packaging, then at runtime copy to a readable absolute path and call:
+
+- `SetModelDir(Dir)` = directory containing the bins, or  
+- `SetModelPath(Path)` = full path to one `.bin`
+
+Android example that the SDK already searches: `/storage/emulated/0/Documents/MagicSRModels/`.  
+`Content/` is **not** auto-resolved by `Enable` at runtime. See User Guide §4.
 
 User manual: [`doc/User_Guide.md`](../../doc/User_Guide.md) (English) · [`doc/用户使用说明书.md`](../../doc/用户使用说明书.md) (中文)
 
@@ -63,13 +69,14 @@ User manual: [`doc/User_Guide.md`](../../doc/User_Guide.md) (English) · [`doc/�
 **Preferred path (GPU texture pipelines):**
 
 1. `Enable(InputNativeTexture, Scale)` — wraps `MC_Enable` (returns output texture)
-   - also: `Enable_3params` / `Enable_4params` / `SetInputSizeHint` (Android Vulkan)
+   - also: `Enable_3params` / `Enable_4params`
+   - `SetModelPath(Path)` / `SetModelDir(Dir)` — set model before Enable (preferred)   - `SetInputSizeHint(Width, Height)` — **required** on Android OpenGLES and Android Vulkan
 2. `Disable()` — wraps `MC_Disable`
    - or `CreateSessionEx` + `ProcessUTexture` for explicit control
 3. `ProcessUTexture(SessionId, InputUTexture, OutputUTexture)` — **recommended for game content**
    - or `ProcessNativeTexture(...)` when you already hold native GPU handles
 
-`EnableNative` / `DisableNative` remain as deprecated aliases of `Enable` / `Disable`.
+> **Deprecated:** `EnableNative(Scale, InputNativeTexture)` uses the old **scale-first** argument order. Prefer `Enable(InputNativeTexture, Scale)`. `DisableNative()` → use `Disable()`.
 
 `InputType` / `Backend` values (match `mc_interface.h`):
 
@@ -127,8 +134,8 @@ Mismatch / resolve guards:
 1. Copy plugin folder into your UE project:
    - Target location: `<YourUEProject>/Plugins/MagicSR`
 2. Ensure native libraries exist:
-   - `lib/android/libmagic_sr.a`
-   - `lib/ios/libmagic_sr.a`
+   - `lib/android/libmagic_sr_enable.a`
+   - `lib/ios/libmagic_sr_enable.a`
 3. Enable plugin in your `.uproject` if needed.
 4. Re-generate project files / reopen editor.
 5. Use Blueprint nodes from `MagicSR` category or call from C++.

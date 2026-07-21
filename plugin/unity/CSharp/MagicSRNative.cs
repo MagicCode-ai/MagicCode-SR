@@ -97,6 +97,9 @@ namespace MagicSR.UnityPlugin
         private static extern void MagicSR_SetModelDir(string modelDir);
 
         [DllImport(NativeLibraryName)]
+        private static extern void MagicSR_SetModelPath(string modelPath);
+
+        [DllImport(NativeLibraryName)]
         private static extern void MagicSR_SetInputSizeHint(uint width, uint height);
 
         [DllImport(NativeLibraryName)]
@@ -182,12 +185,20 @@ namespace MagicSR.UnityPlugin
         }
 
         /// <summary>
-        /// Tell MC_Enable where to look for model bins (directory containing magic_veryfast_*_params.bin).
+        /// Tell MC_Enable the directory containing model .bin files.
         /// Call before Enable when models live under StreamingAssets / persistentDataPath.
         /// </summary>
         public static void SetModelDir(string modelDir)
         {
             MagicSR_SetModelDir(modelDir ?? string.Empty);
+        }
+
+        /// <summary>
+        /// Tell MC_Enable the full path to one model .bin file.
+        /// </summary>
+        public static void SetModelPath(string modelPath)
+        {
+            MagicSR_SetModelPath(modelPath ?? string.Empty);
         }
 
         /// <summary>

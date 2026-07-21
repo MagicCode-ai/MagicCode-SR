@@ -118,26 +118,28 @@ And provides integration support for:
 
 ## Quick Start
 
-Integrate MagicSR with about three lines of code via the Enable API: pass an input texture and scale, use the returned output, then call Disable when finished.
+Quick integration via the Enable API: include the header, set the model directory, enable with an input texture and scale, then disable when finished.
 
 ```c
-void* output = MC_Enable(input, scale);  // use output
+#include "mc_enable.h"
+MC_Enable_SetModelDir("/path/to/MagicSRModels");  // or MC_Enable_SetModelPath(".../model.bin")
+void* output = MC_Enable(input, scale);           // use output
 MC_Disable(output);
 ```
 
-Unity / Unreal plugins follow the same flow as `Enable(input, scale)` / `Disable()`.
+Unity / Unreal plugins follow the same flow as `SetModelDir` → `Enable(input, scale)` → `Disable()`.
 
-<a href="README.assets/MagicSR_3Line_Integration.mp4">
-  <img src="README.assets/MagicSR_3Line_Integration.gif" width="880" alt="MagicSR 3-line integration tutorial">
+<a href="README.assets/MagicSR_Quick_Integration.mp4">
+  <img src="README.assets/MagicSR_Quick_Integration.gif" width="880" alt="MagicSR quick integration tutorial">
 </a>
 
-[**▶ Watch full tutorial (MP4)**](README.assets/MagicSR_3Line_Integration.mp4)
+[**▶ Watch full tutorial (MP4)**](README.assets/MagicSR_Quick_Integration.mp4)
 
 For full details, see the [User Guide](doc/User_Guide.md).
 
 ## License
 
-MagicSR is **free to download and use** under the [End User License Agreement (EULA) v1.1.0](doc/MagicCode%20Super-Resolution%20Software%20End%20User%20License%20Agreement%20(EULA)%20v1.1.0.pdf).
+MagicSR is **free to download and use** under the [End User License Agreement (EULA) v1.1](doc/MagicCode%20Super-Resolution%20Software%20End%20User%20License%20Agreement%20(EULA)%20v1.1.pdf).
 
 The EULA grants a no-charge license to the Software itself. **Professional services** — such as integration assistance, custom development, consulting, training, priority support, and SLA commitments — are **not included** in the free Software license and require a separate paid Services Agreement.
 

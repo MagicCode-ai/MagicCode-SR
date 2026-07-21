@@ -95,6 +95,15 @@ public:
     UFUNCTION(BlueprintCallable, Category = "MagicSR|Easy")
     static int64 Enable_4params(int64 InputNativeTexture, float Scale, int32 AlgMode, int32 Backend);
 
+
+    /** Set full path to one model .bin before Enable (wraps MC_Enable_SetModelPath). */
+    UFUNCTION(BlueprintCallable, Category = "MagicSR|Easy")
+    static void SetModelPath(const FString& ModelPath);
+
+    /** Set directory containing model .bin files before Enable (wraps MC_Enable_SetModelDir). */
+    UFUNCTION(BlueprintCallable, Category = "MagicSR|Easy")
+    static void SetModelDir(const FString& ModelDir);
+
     /** Optional: hint input WxH for backends that cannot query texture size (Android Vulkan). */
     UFUNCTION(BlueprintCallable, Category = "MagicSR|Easy")
     static void SetInputSizeHint(int32 Width, int32 Height);

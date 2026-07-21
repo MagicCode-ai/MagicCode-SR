@@ -11,8 +11,8 @@ Supported runtime platforms:
 
 Core native libraries used by this plugin:
 
-- Android: `lib/android/libmagic_sr.a`
-- iOS: `lib/ios/libmagic_sr.a`
+- Android: `lib/android/libmagic_sr_enable.a` (core + `MC_Enable`)
+- iOS: `lib/ios/libmagic_sr_enable.a` (core + `MC_Enable`)
 
 ## 2) Deliverables
 

@@ -223,7 +223,7 @@ extern "C" int MagicSR_RunIOSEnableSmoke(const char* ModelPath, char* OutReport,
         return -1;
     }
 
-    setenv("MAGIC_SR_MODEL", ModelPath, 1);
+    MC_Enable_SetModelPath(ModelPath);
 
     id<MTLDevice> Device = MTLCreateSystemDefaultDevice();
     if (Device == nil)

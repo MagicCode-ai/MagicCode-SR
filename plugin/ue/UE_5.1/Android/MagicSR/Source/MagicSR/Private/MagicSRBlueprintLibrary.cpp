@@ -446,6 +446,41 @@ int64 UMagicSRBlueprintLibrary::Enable_4params(int64 InputNativeTexture, float S
 #endif
 }
 
+
+
+
+void UMagicSRBlueprintLibrary::SetModelPath(const FString& ModelPath)
+{
+#if MAGIC_SR_SUPPORTED
+    if (ModelPath.IsEmpty())
+    {
+        MC_Enable_SetModelPath(nullptr);
+    }
+    else
+    {
+        MC_Enable_SetModelPath(TCHAR_TO_UTF8(*ModelPath));
+    }
+#else
+    (void)ModelPath;
+#endif
+}
+
+void UMagicSRBlueprintLibrary::SetModelDir(const FString& ModelDir)
+{
+#if MAGIC_SR_SUPPORTED
+    if (ModelDir.IsEmpty())
+    {
+        MC_Enable_SetModelDir(nullptr);
+    }
+    else
+    {
+        MC_Enable_SetModelDir(TCHAR_TO_UTF8(*ModelDir));
+    }
+#else
+    (void)ModelDir;
+#endif
+}
+
 void UMagicSRBlueprintLibrary::SetInputSizeHint(int32 Width, int32 Height)
 {
 #if MAGIC_SR_SUPPORTED

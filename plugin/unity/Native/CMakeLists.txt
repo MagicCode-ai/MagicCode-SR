@@ -13,15 +13,32 @@ if(NOT EXISTS ${MAGIC_LIB_PATH})
 endif()
 
 if(NOT EXISTS ${MAGIC_LIB_PATH})
-    message(FATAL_ERROR "Missing Android libmagic_sr.a. Tried ${MAGIC_RELEASE_ROOT}/lib/android/libmagic_sr.a and ${MAGIC_ROOT}/build/android/build/libmagic_sr.a")
+    set(MAGIC_LIB_PATH ${MAGIC_ROOT}/../github/MagicCode-SR/lib/android/libmagic_sr.a)
 endif()
 
-add_library(magic_sr_unity SHARED magic_sr_plugin.cpp)
+if(NOT EXISTS ${MAGIC_LIB_PATH})
+    message(FATAL_ERROR "Missing Android libmagic_sr.a (core lib without mc_enable)")
+endif()
+
+# MC_Enable is compiled into the plugin, not libmagic_sr.a
+add_library(magic_sr_unity SHARED
+    magic_sr_plugin.cpp
+    ${MAGIC_ROOT}/interface/mc_enable.c
+)
 
 add_library(magic_sr STATIC IMPORTED)
 set_target_properties(magic_sr PROPERTIES IMPORTED_LOCATION ${MAGIC_LIB_PATH})
 
-target_include_directories(magic_sr_unity PRIVATE ${CMAKE_CURRENT_LIST_DIR} ${MAGIC_ROOT}/interface ${MAGIC_ROOT}/src)
+target_include_directories(magic_sr_unity PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}
+    ${MAGIC_ROOT}/interface
+)
+
+target_compile_definitions(magic_sr_unity PRIVATE
+    SYS_ANDROID=1
+    VULKAN=1
+    OpenGLES=1
+)
 
 find_library(log-lib log)
 find_library(gles-lib GLESv3)

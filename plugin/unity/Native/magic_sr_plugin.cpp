@@ -79,12 +79,14 @@ extern "C" void* MagicSR_CreateEx(const char* model_path,
 }
 
 extern "C" void MagicSR_SetModelDir(const char* model_dir) {
-    if (model_dir == nullptr || model_dir[0] == '\0') {
-        unsetenv("MAGIC_SR_MODEL_DIR");
-        return;
-    }
-    setenv("MAGIC_SR_MODEL_DIR", model_dir, 1);
+    MC_Enable_SetModelDir(model_dir);
 }
+
+extern "C" void MagicSR_SetModelPath(const char* model_path) {
+    MC_Enable_SetModelPath(model_path);
+}
+
+
 
 extern "C" void MagicSR_SetInputSizeHint(unsigned int width, unsigned int height) {
     MC_Enable_SetInputSizeHint(width, height);

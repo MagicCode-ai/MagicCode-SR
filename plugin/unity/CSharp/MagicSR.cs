@@ -12,7 +12,8 @@ namespace MagicSR.UnityPlugin
         static readonly MagicSRSession Shared = new MagicSRSession();
 
         /// <summary>
-        /// Optional: set model directory for MC_Enable (contains magic_veryfast_*_params.bin).
+        /// Set the directory that contains MagicSR model .bin files
+        /// (e.g. magic_gles_highspeed_gpu_params.bin). Call before Enable.
         /// </summary>
         public static void SetModelDir(string modelDir)
         {
@@ -20,7 +21,17 @@ namespace MagicSR.UnityPlugin
         }
 
         /// <summary>
-        /// Optional size hint before Enable* (needed for Android Vulkan).
+        /// Set the full path to one model .bin file. Call before Enable.
+        /// Overrides directory lookup when set.
+        /// </summary>
+        public static void SetModelPath(string modelPath)
+        {
+            MagicSRSession.SetModelPath(modelPath);
+        }
+
+        /// <summary>
+        /// Size hint before Enable*. Required on Android OpenGLES / Vulkan when
+        /// using a raw native texture pointer; Texture overloads set this for you.
         /// </summary>
         public static void SetInputSizeHint(int width, int height)
         {

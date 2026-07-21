@@ -6,6 +6,7 @@
 
 #include "/Users/joey/Desktop/work/01.prj/magic/project/demo/android_demo/camera/app/src/main/cpp/native-lib.cpp"
 #include "MagicSRBlueprintLibrary.h"
+#include "mc_enable.h"
 #include "MagicSRSmokePng.h"
 
 #include <cstdlib>
@@ -266,7 +267,7 @@ int RunEnableApiSmoke(const char* ModelPath, char* OutLine, size_t OutLineSize)
         return -1;
     }
 
-    setenv("MAGIC_SR_MODEL", ModelPath, 1);
+    MC_Enable_SetModelPath(ModelPath);
 
     const size_t InputBytes = static_cast<size_t>(EnableW) * EnableH * 4;
     uint8_t* Input = static_cast<uint8_t*>(malloc(InputBytes));
