@@ -178,7 +178,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../lib/ios";
 				OTHER_LDFLAGS = (
-					"-lmagic_sr",
+					"-lmagic_sr_enable",
 					"-framework",
 					AVFoundation,
 					"-framework",
@@ -209,7 +209,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../lib/ios";
 				OTHER_LDFLAGS = (
-					"-lmagic_sr",
+					"-lmagic_sr_enable",
 					"-framework",
 					AVFoundation,
 					"-framework",

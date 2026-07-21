@@ -1,1 +1,0 @@
-/Users/joey/Desktop/work/01.prj/magic/project/demo/android_demo/camera/app/src/main/cpp/CMakeLists.txt

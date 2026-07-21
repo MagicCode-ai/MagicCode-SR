@@ -3,7 +3,7 @@ setlocal enableextensions
 
 set "ROOT=%~dp0"
 if "%ROOT:~-1%"=="\" set "ROOT=%ROOT:~0,-1%"
-set "REPO_ROOT=%ROOT%\.."
+for %%I in ("%ROOT%\..") do set "REPO_ROOT=%%~fI"
 
 set "ANDROID_DIR=%ROOT%\android"
 set "GRADLEW=%ANDROID_DIR%\gradlew.bat"
@@ -15,17 +15,16 @@ set "INTERFACE_DIR=%REPO_ROOT%\interface"
 set "PACKAGES_DIR=%ANDROID_DIR%\packages"
 
 echo [INFO] Demo root: %ROOT%
-echo [INFO] Repo root: %REPO_ROOT%
 
 if not exist "%GRADLEW%" (
   echo [ERROR] gradlew.bat not found: %GRADLEW%
   exit /b 1
 )
 
-call :require_file "%ANDROID_LIB_DIR%\libmagic_sr.a"
-call :require_file "%IOS_LIB_DIR%\libmagic_sr.a"
 call :require_file "%INTERFACE_DIR%\mc_interface.h"
 call :require_file "%INTERFACE_DIR%\mc_enable.h"
+call :require_file "%ANDROID_LIB_DIR%\libmagic_sr_enable.a"
+call :require_file "%IOS_LIB_DIR%\libmagic_sr_enable.a"
 
 call :require_file "%MODEL_DIR%\magic_gles_highspeed_gpu_params.bin"
 call :require_file "%MODEL_DIR%\magic_gles_speed_gpu_params.bin"

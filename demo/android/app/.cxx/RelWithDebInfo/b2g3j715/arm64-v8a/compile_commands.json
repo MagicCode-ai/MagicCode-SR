@@ -1,7 +1,0 @@
-[
-{
-  "directory": "/Users/joey/Desktop/work/01.prj/magic/project/demo/android_demo/camera/app/.cxx/RelWithDebInfo/b2g3j715/arm64-v8a",
-  "command": "/Users/joey/Library/Android/sdk/ndk/29.0.14033849/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang++ --target=aarch64-none-linux-android26 --sysroot=/Users/joey/Library/Android/sdk/ndk/29.0.14033849/toolchains/llvm/prebuilt/darwin-x86_64/sysroot -Dsuperresolution_EXPORTS -I/Users/joey/Desktop/work/01.prj/magic/project/demo/android_demo/camera/app/src/main/cpp -I/Users/joey/Desktop/work/01.prj/magic/project/demo/android_demo/camera/app/src/main/cpp/../../../../../../../src -I/Users/joey/Library/Android/sdk/ndk/29.0.14033849/sources/third_party/vulkan/src/include -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security   -fno-stack-protector -U_FORTIFY_SOURCE -O2 -g -DNDEBUG -fPIC -o CMakeFiles/superresolution.dir/native-lib.cpp.o -c /Users/joey/Desktop/work/01.prj/magic/project/demo/android_demo/camera/app/src/main/cpp/native-lib.cpp",
-  "file": "/Users/joey/Desktop/work/01.prj/magic/project/demo/android_demo/camera/app/src/main/cpp/native-lib.cpp"
-}
-]

@@ -4,19 +4,21 @@ project("magic_camera_sr")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-stack-protector -U_FORTIFY_SOURCE")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-stack-protector -U_FORTIFY_SOURCE")
 
-# cpp → main → src → app → android → demo → repo root
-set(REPO_ROOT "${CMAKE_SOURCE_DIR}/../../../../../..")
-set(MAGIC_LIB_PATH "${REPO_ROOT}/lib/android/libmagic_sr.a")
-set(MAGIC_INTERFACE_DIR "${REPO_ROOT}/interface")
+set(LOCAL_JNI_DIR ${CMAKE_SOURCE_DIR})
+# cpp → main → src → app → android → demo → repo-root/lib/android
+set(MAGIC_LIB_DIR "${CMAKE_SOURCE_DIR}/../../../../../../lib/android")
+set(MAGIC_LIB_PATH "${MAGIC_LIB_DIR}/libmagic_sr_enable.a")
+set(MAGIC_INTERFACE_DIR "${CMAKE_SOURCE_DIR}/../../../../../../interface")
 
 add_library(superresolution SHARED
-    ${CMAKE_SOURCE_DIR}/native-lib.cpp
+    ${LOCAL_JNI_DIR}/native-lib.cpp
 )
 
 add_library(magic_sr STATIC IMPORTED)
 set_target_properties(magic_sr PROPERTIES IMPORTED_LOCATION ${MAGIC_LIB_PATH})
 
 target_include_directories(superresolution PRIVATE
+    ${LOCAL_JNI_DIR}
     ${MAGIC_INTERFACE_DIR}
     ${ANDROID_NDK}/sources/third_party/vulkan/src/include
 )

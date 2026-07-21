@@ -1,4 +1,4 @@
-# Install script for directory: /Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/cpp
+# Install script for directory: /Users/joey/Desktop/work/01.prj/magic/github/MagicCode-SR/demo/android/app/src/main/cpp
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -50,5 +50,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/.cxx/Debug/464bq1e2/arm64-v8a/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/Users/joey/Desktop/work/01.prj/magic/github/MagicCode-SR/demo/android/app/.cxx/Debug/464bq1e2/arm64-v8a/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

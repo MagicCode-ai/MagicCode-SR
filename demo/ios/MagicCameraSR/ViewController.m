@@ -20,6 +20,10 @@ static const NSTimeInterval kScaleApplyDelay = 0.08;
 @property(nonatomic, strong) UISegmentedControl *modeControl;
 @property(nonatomic, strong) UISlider *scaleSlider;
 @property(nonatomic, strong) UILabel *scaleLabel;
+@property(nonatomic, strong) UIView *scaleTickStrip;
+@property(nonatomic, strong) NSArray<UIView *> *scaleTickMarks;
+@property(nonatomic, strong) NSArray<UILabel *> *scaleTickLabels;
+@property(nonatomic) BOOL scaleDragging;
 @property(nonatomic, strong) AVCaptureSession *session;
 @property(nonatomic, strong) dispatch_queue_t captureQueue;
 @property(nonatomic, strong) id<MTLDevice> device;
@@ -93,18 +97,57 @@ static const NSTimeInterval kScaleApplyDelay = 0.08;
     UIStackView *scaleRow = [[UIStackView alloc] initWithFrame:CGRectZero];
     scaleRow.axis = UILayoutConstraintAxisHorizontal;
     scaleRow.spacing = 8;
-    scaleRow.alignment = UIStackViewAlignmentCenter;
+    scaleRow.alignment = UIStackViewAlignmentTop;
     self.scaleLabel = [[UILabel alloc] initWithFrame:CGRectZero];
     self.scaleLabel.textColor = UIColor.whiteColor;
     self.scaleLabel.font = [UIFont systemFontOfSize:13 weight:UIFontWeightMedium];
     [scaleRow addArrangedSubview:self.scaleLabel];
 
+    UIStackView *seekCol = [[UIStackView alloc] initWithFrame:CGRectZero];
+    seekCol.axis = UILayoutConstraintAxisVertical;
+    seekCol.spacing = 2;
+    seekCol.alignment = UIStackViewAlignmentFill;
+
     self.scaleSlider = [[UISlider alloc] initWithFrame:CGRectZero];
     self.scaleSlider.minimumValue = 1.0f;
     self.scaleSlider.maximumValue = 8.0f;
     self.scaleSlider.value = self.selectedScale;
+    self.scaleSlider.continuous = YES;
+    [self.scaleSlider addTarget:self action:@selector(scaleTouchDown:) forControlEvents:UIControlEventTouchDown];
+    [self.scaleSlider addTarget:self action:@selector(scaleDrag:) forControlEvents:UIControlEventTouchDragInside | UIControlEventTouchDragOutside];
     [self.scaleSlider addTarget:self action:@selector(scaleChanged:) forControlEvents:UIControlEventValueChanged];
-    [scaleRow addArrangedSubview:self.scaleSlider];
+    [self.scaleSlider addTarget:self action:@selector(scaleTouchUp:) forControlEvents:UIControlEventTouchUpInside | UIControlEventTouchUpOutside | UIControlEventTouchCancel];
+    [seekCol addArrangedSubview:self.scaleSlider];
+
+    self.scaleTickStrip = [[UIView alloc] initWithFrame:CGRectZero];
+    [self.scaleTickStrip.heightAnchor constraintEqualToConstant:24].active = YES;
+    NSMutableArray<UIView *> *tickMarks = [NSMutableArray arrayWithCapacity:8];
+    NSMutableArray<UILabel *> *tickLabels = [NSMutableArray arrayWithCapacity:8];
+    for (NSInteger tick = 1; tick <= 8; tick++) {
+        UIView *mark = [[UIView alloc] initWithFrame:CGRectZero];
+        mark.backgroundColor = [[UIColor whiteColor] colorWithAlphaComponent:0.75];
+        mark.tag = tick;
+        [self.scaleTickStrip addSubview:mark];
+        [tickMarks addObject:mark];
+
+        UILabel *tickLabel = [[UILabel alloc] initWithFrame:CGRectZero];
+        tickLabel.text = [NSString stringWithFormat:@"%ld", (long)tick];
+        tickLabel.textColor = [[UIColor whiteColor] colorWithAlphaComponent:0.85];
+        tickLabel.font = [UIFont monospacedDigitSystemFontOfSize:11 weight:UIFontWeightRegular];
+        tickLabel.textAlignment = NSTextAlignmentCenter;
+        tickLabel.tag = tick;
+        tickLabel.userInteractionEnabled = YES;
+        UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(scaleTickTapped:)];
+        [tickLabel addGestureRecognizer:tap];
+        [self.scaleTickStrip addSubview:tickLabel];
+        [tickLabels addObject:tickLabel];
+    }
+    self.scaleTickMarks = tickMarks;
+    self.scaleTickLabels = tickLabels;
+    UITapGestureRecognizer *stripTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(scaleTickStripTapped:)];
+    [self.scaleTickStrip addGestureRecognizer:stripTap];
+    [seekCol addArrangedSubview:self.scaleTickStrip];
+    [scaleRow addArrangedSubview:seekCol];
     [stack addArrangedSubview:scaleRow];
 
     self.statusLabel = [[UILabel alloc] initWithFrame:CGRectZero];
@@ -124,6 +167,39 @@ static const NSTimeInterval kScaleApplyDelay = 0.08;
         [stack.bottomAnchor constraintEqualToAnchor:panel.bottomAnchor constant:-12],
     ]];
     [self updateScaleLabel];
+    [self.view setNeedsLayout];
+}
+
+- (void)viewDidLayoutSubviews {
+    [super viewDidLayoutSubviews];
+    [self layoutScaleTickLabels];
+}
+
+- (void)layoutScaleTickLabels {
+    if (self.scaleTickStrip.bounds.size.width <= 1.0 || self.scaleTickLabels.count == 0) return;
+    CGFloat trackW = CGRectGetWidth(self.scaleSlider.bounds);
+    // Approximate UISlider track inset so ticks align with thumb travel.
+    CGFloat inset = 14.0;
+    CGFloat usable = MAX(1.0, trackW - inset * 2.0);
+    CGFloat stripW = CGRectGetWidth(self.scaleTickStrip.bounds);
+    CGFloat originX = (stripW - trackW) * 0.5 + inset;
+    CGFloat labelW = 18.0;
+    CGFloat markH = 6.0;
+    CGFloat stripH = CGRectGetHeight(self.scaleTickStrip.bounds);
+    NSInteger minTick = 1;
+    NSInteger maxTick = 8;
+    NSInteger span = maxTick - minTick;
+    for (NSUInteger i = 0; i < self.scaleTickLabels.count; i++) {
+        UILabel *label = self.scaleTickLabels[i];
+        UIView *mark = (i < self.scaleTickMarks.count) ? self.scaleTickMarks[i] : nil;
+        NSInteger tick = label.tag;
+        CGFloat t = span > 0 ? (CGFloat)(tick - minTick) / (CGFloat)span : 0.0;
+        CGFloat centerX = originX + t * usable;
+        if (mark) {
+            mark.frame = CGRectMake(centerX - 0.5, 0, 1.0, markH);
+        }
+        label.frame = CGRectMake(centerX - labelW * 0.5, markH, labelW, MAX(1.0, stripH - markH));
+    }
 }
 
 - (void)modeChanged:(UISegmentedControl *)sender {
@@ -131,8 +207,58 @@ static const NSTimeInterval kScaleApplyDelay = 0.08;
     [self restartEngine];
 }
 
+- (void)scaleTouchDown:(UISlider *)sender {
+    self.scaleDragging = NO;
+}
+
+- (void)scaleDrag:(UISlider *)sender {
+    self.scaleDragging = YES;
+}
+
 - (void)scaleChanged:(UISlider *)sender {
     self.selectedScale = MAX(1.0f, MIN(8.0f, sender.value));
+    [self updateScaleLabel];
+    if (self.scaleDragging) {
+        [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(restartEngine) object:nil];
+        [self performSelector:@selector(restartEngine) withObject:nil afterDelay:kScaleApplyDelay];
+    }
+}
+
+- (void)scaleTouchUp:(UISlider *)sender {
+    if (self.scaleDragging) {
+        self.selectedScale = MAX(1.0f, MIN(8.0f, sender.value));
+        [self updateScaleLabel];
+        [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(restartEngine) object:nil];
+        [self performSelector:@selector(restartEngine) withObject:nil afterDelay:kScaleApplyDelay];
+    } else {
+        [self applyIntegerScale:(int)lroundf(sender.value)];
+    }
+    self.scaleDragging = NO;
+}
+
+- (void)scaleTickTapped:(UITapGestureRecognizer *)gesture {
+    if (gesture.state != UIGestureRecognizerStateEnded) return;
+    [self applyIntegerScale:(int)gesture.view.tag];
+}
+
+- (void)scaleTickStripTapped:(UITapGestureRecognizer *)gesture {
+    if (gesture.state != UIGestureRecognizerStateEnded) return;
+    CGPoint p = [gesture locationInView:self.scaleTickStrip];
+    CGFloat trackW = CGRectGetWidth(self.scaleSlider.bounds);
+    CGFloat inset = 14.0;
+    CGFloat usable = MAX(1.0, trackW - inset * 2.0);
+    CGFloat stripW = CGRectGetWidth(self.scaleTickStrip.bounds);
+    CGFloat originX = (stripW - trackW) * 0.5 + inset;
+    CGFloat unit = (p.x - originX) / usable;
+    unit = MAX(0.0, MIN(1.0, unit));
+    float scale = 1.0f + (float)unit * 7.0f;
+    [self applyIntegerScale:(int)lroundf(scale)];
+}
+
+- (void)applyIntegerScale:(int)integerScale {
+    int snapped = MAX(1, MIN(8, integerScale));
+    self.selectedScale = (float)snapped;
+    self.scaleSlider.value = self.selectedScale;
     [self updateScaleLabel];
     [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(restartEngine) object:nil];
     [self performSelector:@selector(restartEngine) withObject:nil afterDelay:kScaleApplyDelay];
@@ -288,7 +414,7 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
 
 - (void)prepareMetalEnableModelEnvironment {
     NSString *modelPath = [self modelPathForCurrentMode];
-    setenv("MAGIC_SR_MODEL", modelPath.UTF8String, 1);
+    MC_Enable_SetModelPath(modelPath.UTF8String);
 }
 
 - (size_t)evenSize:(long long)desired max:(size_t)max {

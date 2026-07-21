@@ -30,7 +30,7 @@ import java.util.Locale;
 
 public class MagicSrUnityPluginInstrumentedTest {
     private static final String TAG = "MagicSRUnityPluginITest";
-    private static final String CPU_MODEL = "magic_veryfastx2_cpu_params.bin";
+    private static final String CPU_MODEL = "magic_highspeedx2_cpu_params.bin";
     private static final String GLES_HIGHSPEED_MODEL = "magic_gles_highspeed_gpu_params.bin";
     private static final String GLES_SPEED_MODEL = "magic_gles_speed_gpu_params.bin";
     private static final String VULKAN_MODEL = "magic_veryfast_gpu_params.bin";

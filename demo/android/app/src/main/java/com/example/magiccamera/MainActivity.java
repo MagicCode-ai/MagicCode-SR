@@ -1,15 +1,21 @@
 package com.example.magiccamera;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Matrix;
+import android.graphics.Paint;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.util.Size;
 import android.view.Gravity;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -62,6 +68,11 @@ public class MainActivity extends AppCompatActivity {
     private TextView modeSpeedBtn;
     private TextView scaleLabel;
     private SeekBar scaleSeekBar;
+    private ScaleTickView scaleTickView;
+    private boolean scaleDragging;
+    private float scaleTouchDownX;
+    private float scaleTouchDownY;
+    private int scaleTouchSlop;
 
     private ProcessCameraProvider cameraProvider;
     private volatile boolean running;
@@ -150,6 +161,8 @@ public class MainActivity extends AppCompatActivity {
         modeRow.addView(modeSpeedBtn, speedParams);
         controls.addView(modeRow);
 
+        scaleTouchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
+
         LinearLayout scaleRow = new LinearLayout(this);
         scaleRow.setOrientation(LinearLayout.HORIZONTAL);
         scaleRow.setGravity(Gravity.CENTER_VERTICAL);
@@ -157,6 +170,9 @@ public class MainActivity extends AppCompatActivity {
         scaleLabel = new TextView(this);
         scaleLabel.setTextColor(0xffffffff);
         scaleRow.addView(scaleLabel);
+
+        LinearLayout seekCol = new LinearLayout(this);
+        seekCol.setOrientation(LinearLayout.VERTICAL);
         scaleSeekBar = new SeekBar(this);
         scaleSeekBar.setMax(SCALE_SEEK_MAX);
         scaleSeekBar.setProgress(progressForScale(selectedScale));
@@ -164,17 +180,53 @@ public class MainActivity extends AppCompatActivity {
             @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 selectedScale = scaleForProgress(progress);
                 updateControls();
-                scheduleScaleApply();
+                if (fromUser) {
+                    scheduleScaleApply();
+                }
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {
-                scheduleScaleApply();
+                if (scaleDragging) {
+                    scheduleScaleApply();
+                } else {
+                    snapScaleToNearestInteger();
+                }
             }
         });
+        scaleSeekBar.setOnTouchListener((v, event) -> {
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    scaleDragging = false;
+                    scaleTouchDownX = event.getX();
+                    scaleTouchDownY = event.getY();
+                    break;
+                case MotionEvent.ACTION_MOVE: {
+                    float dx = event.getX() - scaleTouchDownX;
+                    float dy = event.getY() - scaleTouchDownY;
+                    if (!scaleDragging && (dx * dx + dy * dy) > (scaleTouchSlop * scaleTouchSlop)) {
+                        scaleDragging = true;
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+            return false;
+        });
+        seekCol.addView(scaleSeekBar, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        scaleTickView = new ScaleTickView(this);
+        scaleTickView.setOnTickSelectedListener(this::applyIntegerScale);
+        seekCol.addView(scaleTickView, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(28)));
+        scaleSeekBar.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) ->
+                scaleTickView.syncPadding(scaleSeekBar.getPaddingStart(), scaleSeekBar.getPaddingEnd()));
+
         LinearLayout.LayoutParams seekParams = new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
         seekParams.leftMargin = 12;
-        scaleRow.addView(scaleSeekBar, seekParams);
+        scaleRow.addView(seekCol, seekParams);
         controls.addView(scaleRow);
 
         statusText = new TextView(this);
@@ -225,6 +277,98 @@ public class MainActivity extends AppCompatActivity {
     private void scheduleScaleApply() {
         uiHandler.removeCallbacks(scaleApplyRunnable);
         uiHandler.postDelayed(scaleApplyRunnable, SCALE_APPLY_THROTTLE_MS);
+    }
+
+    private void snapScaleToNearestInteger() {
+        applyIntegerScale(Math.round(selectedScale));
+    }
+
+    private void applyIntegerScale(int integerScale) {
+        int snapped = Math.max(Math.round(MIN_SCALE), Math.min(Math.round(MAX_SCALE), integerScale));
+        selectedScale = snapped;
+        if (scaleSeekBar != null) {
+            scaleSeekBar.setProgress(progressForScale(selectedScale));
+        }
+        updateControls();
+        scheduleScaleApply();
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    /** Integer tick marks (1..8) aligned with the SeekBar track; tap selects that scale. */
+    private static final class ScaleTickView extends View {
+        interface OnTickSelectedListener {
+            void onTickSelected(int integerScale);
+        }
+
+        private final Paint linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private OnTickSelectedListener listener;
+        private int trackPadStart;
+        private int trackPadEnd;
+
+        ScaleTickView(Context context) {
+            super(context);
+            float density = context.getResources().getDisplayMetrics().density;
+            linePaint.setColor(0xffcccccc);
+            linePaint.setStrokeWidth(Math.max(1f, density));
+            textPaint.setColor(0xffdddddd);
+            textPaint.setTextAlign(Paint.Align.CENTER);
+            textPaint.setTextSize(11f * density);
+            setClickable(true);
+        }
+
+        void setOnTickSelectedListener(OnTickSelectedListener listener) {
+            this.listener = listener;
+        }
+
+        void syncPadding(int padStart, int padEnd) {
+            if (trackPadStart == padStart && trackPadEnd == padEnd) return;
+            trackPadStart = padStart;
+            trackPadEnd = padEnd;
+            invalidate();
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            int w = getWidth();
+            int h = getHeight();
+            if (w <= 0 || h <= 0) return;
+            float trackLeft = trackPadStart;
+            float trackRight = w - trackPadEnd;
+            float trackW = Math.max(1f, trackRight - trackLeft);
+            float lineTop = 0f;
+            float lineBottom = Math.min(h * 0.35f, 10f * getResources().getDisplayMetrics().density);
+            float textY = lineBottom + textPaint.getTextSize() + 2f;
+            int minTick = Math.round(MIN_SCALE);
+            int maxTick = Math.round(MAX_SCALE);
+            int span = Math.max(1, maxTick - minTick);
+            for (int tick = minTick; tick <= maxTick; tick++) {
+                float t = (tick - minTick) / (float) span;
+                float x = trackLeft + t * trackW;
+                canvas.drawLine(x, lineTop, x, lineBottom, linePaint);
+                canvas.drawText(String.valueOf(tick), x, textY, textPaint);
+            }
+        }
+
+        @Override
+        public boolean onTouchEvent(MotionEvent event) {
+            if (event.getActionMasked() == MotionEvent.ACTION_UP && listener != null) {
+                int w = getWidth();
+                float trackLeft = trackPadStart;
+                float trackRight = w - trackPadEnd;
+                float trackW = Math.max(1f, trackRight - trackLeft);
+                float unit = (event.getX() - trackLeft) / trackW;
+                unit = Math.max(0f, Math.min(1f, unit));
+                float scale = MIN_SCALE + unit * (MAX_SCALE - MIN_SCALE);
+                listener.onTickSelected(Math.round(scale));
+                return true;
+            }
+            return true;
+        }
     }
 
     private void startCamera() {

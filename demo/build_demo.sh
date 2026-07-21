@@ -21,17 +21,16 @@ require_file() {
 }
 
 echo "[INFO] Demo root: ${ROOT}"
-echo "[INFO] Repo root: ${REPO_ROOT}"
 
 if [[ ! -f "${GRADLEW}" ]]; then
   echo "[ERROR] gradlew not found: ${GRADLEW}" >&2
   exit 1
 fi
 
-require_file "${ANDROID_LIB_DIR}/libmagic_sr.a"
-require_file "${IOS_LIB_DIR}/libmagic_sr.a"
 require_file "${INTERFACE_DIR}/mc_interface.h"
 require_file "${INTERFACE_DIR}/mc_enable.h"
+require_file "${ANDROID_LIB_DIR}/libmagic_sr_enable.a"
+require_file "${IOS_LIB_DIR}/libmagic_sr_enable.a"
 
 require_file "${MODEL_DIR}/magic_gles_highspeed_gpu_params.bin"
 require_file "${MODEL_DIR}/magic_gles_speed_gpu_params.bin"

@@ -1,4 +1,4 @@
-                        -H/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/src/main/cpp
+                        -H/Users/joey/Desktop/work/01.prj/magic/github/MagicCode-SR/demo/android/app/src/main/cpp
 -DCMAKE_SYSTEM_NAME=Android
 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 -DCMAKE_SYSTEM_VERSION=26
@@ -9,10 +9,10 @@
 -DCMAKE_ANDROID_NDK=/Users/joey/Library/Android/sdk/ndk/29.0.14033849
 -DCMAKE_TOOLCHAIN_FILE=/Users/joey/Library/Android/sdk/ndk/29.0.14033849/build/cmake/android.toolchain.cmake
 -DCMAKE_MAKE_PROGRAM=/Users/joey/Library/Android/sdk/cmake/3.22.1/bin/ninja
--DCMAKE_LIBRARY_OUTPUT_DIRECTORY=/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/build/intermediates/cxx/Debug/464bq1e2/obj/arm64-v8a
--DCMAKE_RUNTIME_OUTPUT_DIRECTORY=/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/build/intermediates/cxx/Debug/464bq1e2/obj/arm64-v8a
+-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=/Users/joey/Desktop/work/01.prj/magic/github/MagicCode-SR/demo/android/app/build/intermediates/cxx/Debug/464bq1e2/obj/arm64-v8a
+-DCMAKE_RUNTIME_OUTPUT_DIRECTORY=/Users/joey/Desktop/work/01.prj/magic/github/MagicCode-SR/demo/android/app/build/intermediates/cxx/Debug/464bq1e2/obj/arm64-v8a
 -DCMAKE_BUILD_TYPE=Debug
--B/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/.cxx/Debug/464bq1e2/arm64-v8a
+-B/Users/joey/Desktop/work/01.prj/magic/github/MagicCode-SR/demo/android/app/.cxx/Debug/464bq1e2/arm64-v8a
 -GNinja
 -DANDROID_STL=c++_shared
                         Build command args: []

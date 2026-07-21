@@ -171,7 +171,9 @@ Java_com_example_superresolution_natives_SuperResolutionLib_initSuperResolution(
     g_enable_mode = (alg_mode_e)sr_mode;
 
     if (model_path_cstr && model_path_cstr[0] != '\0') {
-        setenv("MAGIC_SR_MODEL", model_path_cstr, 1);
+        MC_Enable_SetModelPath(model_path_cstr);
+    } else {
+        MC_Enable_SetModelPath(nullptr);
     }
     if (model_path) env->ReleaseStringUTFChars(model_path, model_path_cstr);
 

@@ -1,3 +1,3 @@
 # ninja log v5
-2	1917	1783153900074436886	CMakeFiles/superresolution.dir/native-lib.cpp.o	da9ca874563a7105
-1922	2157	1783153900320853164	/Users/joey/Desktop/work/01.prj/magic/release/v1.1.0/demo/android/app/build/intermediates/cxx/Debug/464bq1e2/obj/arm64-v8a/libsuperresolution.so	b680a8b8ec7c1892
+0	3216	1784620133357555129	CMakeFiles/superresolution.dir/native-lib.cpp.o	23a2f43740e602fe
+3227	3736	1784620133880556808	/Users/joey/Desktop/work/01.prj/magic/github/MagicCode-SR/demo/android/app/build/intermediates/cxx/Debug/464bq1e2/obj/arm64-v8a/libsuperresolution.so	7e85f520167fde39
