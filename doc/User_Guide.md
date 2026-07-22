@@ -47,7 +47,8 @@ Notes:
 - Simple path: you do **not** need to add `mc_enable.c` to your app; Enable is already inside `libmagic_sr_enable.a`.  
 - Core-only `libmagic_sr.a` does **not** export `MC_Enable*` — linking it alone causes undefined-symbol errors for Enable.  
 - **Unity / Unreal plugins:** already ship Enable inside the plugin binary; game C# / Blueprint code does not link these `.a` files directly.  
-- **Native apps:** choose a path above (see §5.3). On Apple, still link Metal / MetalKit system frameworks.
+- **Native apps:** choose a path above (see §5.3). On Apple, still link Metal / MetalKit system frameworks.  
+- Release packages usually already include `libmagic_sr_enable.a`. To **rebuild** the combined library from core + Enable sources locally, see `tools/build_enable_lib.sh` in §5.3 A.
 
 ---
 
@@ -200,27 +201,48 @@ You do **not** need to hand-copy model files for most workflows. Use the setup s
 
 ### 4.0 One-command model setup (recommended)
 
-From the repo root:
+`tools/setup_models.sh` (Windows: `tools\setup_models.bat`) **only copies files**. It does **not** call `SetModelDir` / `Enable` for you.  
+Source is always `<repo>/model/`. By default it copies the Enable **GPU** `.bin` set (Metal / OpenGL / GLES / Vulkan × highspeed + speed — 8 files; missing names are skipped).
+
+Run from the repo root. See `./tools/setup_models.sh --help` for the full list.
+
+#### What each subcommand does
+
+| Command | Copies models to | Typical use | What you still must do |
+|---------|------------------|-------------|------------------------|
+| `demo` (default if you omit the command) | Android: `demo/android/app/src/main/assets/model/`<br>iOS: `demo/ios/MagicCameraSR/MagicSRModels/` | Stock camera demos only | Build/install the demo as usual; the demo sets its model path |
+| `local` | `<repo>/MagicSRModels/` | Native / local debugging | **Must** call `MC_Enable_SetModelDir("<absolute path to that folder>")` (or `SetModelPath` to one `.bin`). Dropping files there does **not** make every app find them automatically |
+| `unity --project <UnityRoot>` | `<project>/Assets/StreamingAssets/MagicSRModels/` | Unity integration | At runtime, copy to a writable folder then `MagicSR.SetModelDir(...)` (see §4.2) |
+| `ue --project <UERoot>` | `<project>/Content/MagicSRModels/` | UE packaging | Runtime does **not** auto-read `Content/`; copy/adb on device and `SetModelDir` (see §4.2) |
+| `dir --dest <path>` | Your chosen directory | Custom layout | `MC_Enable_SetModelDir("<absolute path>")` |
+| `adb` | Device `/storage/emulated/0/Documents/MagicSRModels/` | Quick Android device check | `MC_Enable_SetModelDir("/storage/emulated/0/Documents/MagicSRModels")` |
+| `all` | `demo` + `local` (plus Unity/UE if `--project-unity` / `--project-ue` given) | Prep several targets at once | Still set paths in code per target above |
 
 ```bash
-# macOS / Linux
-./tools/setup_models.sh demo          # Android + iOS demos
-./tools/setup_models.sh local         # <repo>/MagicSRModels (then SetModelDir)
+# macOS / Linux examples
+./tools/setup_models.sh demo
+./tools/setup_models.sh local
 ./tools/setup_models.sh unity --project /path/to/YourUnityProject
 ./tools/setup_models.sh ue --project /path/to/YourUEProject
-./tools/setup_models.sh adb           # push GPU models to Android Documents/MagicSRModels
+./tools/setup_models.sh adb
 ```
 
 ```bat
 REM Windows
 tools\setup_models.bat demo
+tools\setup_models.bat local
 tools\setup_models.bat unity --project C:\path\to\YourUnityProject
 tools\setup_models.bat ue --project C:\path\to\YourUEProject
 ```
 
-The script copies the Enable GPU `.bin` files from `model/` into the correct folders. Run `./tools/setup_models.sh --help` for all commands.
+**Common misunderstandings:**
+
+- `local` is **not** a global auto-search. It only creates `<repo>/MagicSRModels/`. The relative fallback `MagicSRModels/<filename>` may hit it **only if** the process cwd is the repo root. Shipped apps / Unity / UE almost never have that cwd — **always set `SetModelDir` / `SetModelPath` explicitly**.
+- `demo` vs `build_demo.sh`: the latter also copies GLES models into Android assets when building; `setup_models.sh demo` prepares **both** Android and iOS demo folders as a “stage the models first” step.
 
 ### 4.1 Set the model from code (recommended API)
+
+`SetModelPath` / `SetModelDir` are **not** mandatory C parameters, but for real integrations treat them as **required in practice**: without them, Enable falls back to §4.4 implicit search, which often fails on mobile/engines (`-300009`).
 
 Call **before** `Enable`:
 
@@ -301,15 +323,27 @@ Legacy aliases still accepted: `magic_veryfast_gpu_params.bin`, `magic_veryfast_
 
 ### 4.4 How `Enable` finds the model (reference)
 
-Search order (internal; use §4.1 APIs):
+Search order:
 
-1. `MC_Enable_SetModelPath` / `MagicSR.SetModelPath` / UE `SetModelPath`  
-2. For each default filename in §4.3:  
-   - `SetModelDir` tree / `<name>` (recursive, depth ≤ 4)  
-   - `MagicSRModels/<name>`  
-   - `./<name>`  
-   - Android: `Documents/MagicSRModels` and related paths  
-3. iOS / macOS: App Bundle lookup  
+1. **Explicit file**: `MC_Enable_SetModelPath` / `MagicSR.SetModelPath` / UE `SetModelPath` (if set and readable)  
+2. For each default basename `<name>` in §4.3, try in order:  
+   - **Explicit dir**: recursive lookup under `SetModelDir` (depth ≤ 4)  
+   - **Relative dir**: `MagicSRModels/<name>` — relative to the process **current working directory (cwd)**. This is **not** “find any folder named MagicSRModels on disk”, and it is **not** automatically `<repo>/MagicSRModels`  
+   - **Relative file**: `./<name>` (also cwd-relative)  
+   - **Android fixed absolute fallbacks** (when SetModel* was not set):  
+     `/sdcard/Documents/MagicSRModels/<name>`,  
+     `/storage/emulated/0/Documents/MagicSRModels/<name>`,  
+     `/storage/emulated/0/Documents/<name>`  
+3. **iOS / macOS**: App Bundle lookup by default filename  
+
+So:
+
+| Approach | Reliable? |
+|----------|-----------|
+| `SetModelPath` / `SetModelDir` with absolute paths | Yes — use this for shipping |
+| `setup_models.sh adb` + Android Documents fallback | OK for device debug; still prefer explicit `SetModelDir` |
+| Only `setup_models.sh local`, no SetModel* | May work only if cwd is the repo root — **do not rely on this** |
+| Relative `MagicSRModels/` alone | Depends on cwd — unreliable in packaged apps |
 
 If no file is found, `Enable` fails with `MC_ENABLE_ERROR_MODEL_NOT_FOUND` (`-300009`).
 
@@ -358,6 +392,26 @@ Link `libmagic_sr_enable.a` + include `mc_enable.h`. No need to compile `mc_enab
    - iOS: `lib/ios/libmagic_sr_enable.a`  
 3. On iOS, also link Metal / MetalKit (and related) system frameworks  
 4. Call `MC_Enable_SetModelPath` / `MC_Enable_SetModelDir` (recommended) → `MC_Enable` / `MC_Disable`
+
+**Rebuild the combined library locally (optional)**
+
+Packages usually already ship `libmagic_sr_enable.a`. If you changed `interface/mc_enable*.c/m`, or you only have core `libmagic_sr.a` and need to regenerate the Enable combine lib, from the repo root:
+
+```bash
+./tools/build_enable_lib.sh          # default: Android + iOS
+./tools/build_enable_lib.sh android  # Android only
+./tools/build_enable_lib.sh ios      # iOS only
+```
+
+The script:
+
+1. Locates an existing core `libmagic_sr.a` (prefers `lib/<platform>/`, then private `build/` outputs when present)  
+2. Compiles `mc_enable.c` (plus `mc_enable_metal.m` on iOS)  
+3. Merges them into:  
+   - `lib/android/libmagic_sr_enable.a`  
+   - `lib/ios/libmagic_sr_enable.a`  
+
+Requires the matching toolchain (Android NDK; iOS needs Xcode / iphoneos SDK). This is unrelated to `setup_models.sh` (models only) — `build_enable_lib.sh` only **builds libraries**.
 
 Example (Android NDK / CMake snippet):
 
@@ -438,6 +492,9 @@ A: Two paths (§1.1): **Simple (recommended)** — `libmagic_sr_enable.a` + `mc_
 
 **Q: Linker error: undefined `MC_Enable` / `MC_Disable`?**  
 A: You linked core-only `libmagic_sr.a` (session path). For Enable, switch to `libmagic_sr_enable.a` and include `mc_enable.h` (see §1.1, §5.3 A).
+
+**Q: How is `libmagic_sr_enable.a` built? How is that different from `setup_models.sh`?**  
+A: Release packages usually ship the library. To rebuild locally, run `./tools/build_enable_lib.sh` (merges core `libmagic_sr.a` with `mc_enable`; see §5.3 A). `setup_models.sh` only copies model `.bin` files — it does not build libraries.
 
 ---
 
