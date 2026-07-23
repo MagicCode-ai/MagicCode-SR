@@ -4,7 +4,7 @@ MagicSR is MagicCode's AI super-resolution solution for mobile video and image e
 
 MagicCode developed a fast convolution method called **PACA**, which accelerates convolution computation by dozens of times without sacrificing numerical accuracy. Based on this method, we designed MagicSR to provide strong visual quality with production-ready speed.
 
-The MagicSR network delivers the ultra-fast processing speed typically associated with traditional image-processing algorithms, while preserving the strong AI super-resolution quality of neural approaches. To cover most mobile devices from low-end to high-end, we provide two MagicSR modes: HighSpeed and Speed. Speed produces higher image quality and is better suited to mid- to high-end devices, while HighSpeed runs faster and enables smooth performance on lower-compute devices.
+The MagicSR network delivers the ultra-fast processing speed typically associated with traditional image-processing algorithms, while preserving the strong AI super-resolution quality of neural approaches. To cover most mobile devices from low-end to high-end, we provide two MagicSR modes: HighSpeed and Speed. Speed produces higher image quality and is better suited to mid- to high-end devices, while HighSpeed runs faster(1080P@240fps on iPhone14Pro) and enables smooth performance on lower-compute devices.
 
 Official page: [https://www.magiccode-ai.com/products/video-super-resolution](https://www.magiccode-ai.com/products/video-super-resolution)
 
