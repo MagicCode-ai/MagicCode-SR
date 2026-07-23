@@ -1,4 +1,4 @@
-# MagicSR: MagicCode AI Super-Resolution
+# MagicSR: MagicCode AI Super-Resolution, 1080P@240fps on iPhone14Pro
 
 MagicSR is MagicCode's AI super-resolution solution for mobile video and image enhancement.
 
