@@ -1,1 +1,0 @@
-/Users/joey/Desktop/work/01.prj/magic/github/MagicCode-SR/demo/android/app/src/main/cpp/CMakeLists.txt
