@@ -16,6 +16,7 @@
 #else
 #include <dirent.h>
 #include <sys/stat.h>
+#include <time.h>
 #endif
 
 /* Max subdirectory depth when resolving names under SetModelDir. */
@@ -72,13 +73,90 @@ static int g_vk_out_valid = 0;
 #include <android/log.h>
 #define MC_ENABLE_LOGE(...) \
     __android_log_print(ANDROID_LOG_ERROR, "MagicSR", "[Enable] " __VA_ARGS__)
+#define MC_ENABLE_LOGI(...) \
+    __android_log_print(ANDROID_LOG_INFO, "MagicSR", "[Enable] " __VA_ARGS__)
 #else
 #define MC_ENABLE_LOGE(...) \
+    do { fprintf(stderr, "[MagicSR][Enable] " __VA_ARGS__); fputc('\n', stderr); } while (0)
+#define MC_ENABLE_LOGI(...) \
     do { fprintf(stderr, "[MagicSR][Enable] " __VA_ARGS__); fputc('\n', stderr); } while (0)
 #endif
 
 static const float MC_ENABLE_DEFAULT_SCALE = 2.0f;
 static const float MC_ENABLE_SCALE_EPS = 1.0e-3f;
+static const int MC_ENABLE_PROCESS_AVG_WINDOW = 30;
+
+enum {
+    MC_ENABLE_STAGE_RESOLVE_MODEL = 0,
+    MC_ENABLE_STAGE_QUERY_SIZE,
+    MC_ENABLE_STAGE_ENSURE_SESSION,
+    MC_ENABLE_STAGE_ACQUIRE_OUTPUT,
+    MC_ENABLE_STAGE_MC_PROCESS,
+    MC_ENABLE_STAGE_TOTAL,
+    MC_ENABLE_STAGE_COUNT
+};
+
+static int64_t g_last_mc_process_us = 0;
+static double g_last_mc_process_avg30_ms = 0.0;
+static int64_t g_stage_last_us[MC_ENABLE_STAGE_COUNT];
+static int64_t g_stage_sum_us[MC_ENABLE_STAGE_COUNT];
+static int g_stage_count = 0;
+static int64_t g_pending_resolve_model_us = 0;
+
+static int64_t mc_enable_now_us(void)
+{
+#if defined(_WIN32)
+    static LARGE_INTEGER freq = {0};
+    LARGE_INTEGER counter;
+    if (freq.QuadPart == 0)
+        QueryPerformanceFrequency(&freq);
+    QueryPerformanceCounter(&counter);
+    return (int64_t)((counter.QuadPart * 1000000LL) / freq.QuadPart);
+#else
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (int64_t)ts.tv_sec * 1000000LL + (int64_t)ts.tv_nsec / 1000LL;
+#endif
+}
+
+static void mc_enable_note_stage(int stage, int64_t elapsed_us)
+{
+    if (stage < 0 || stage >= MC_ENABLE_STAGE_COUNT)
+        return;
+    if (elapsed_us < 0)
+        elapsed_us = 0;
+    g_stage_last_us[stage] = elapsed_us;
+    g_stage_sum_us[stage] += elapsed_us;
+    if (stage == MC_ENABLE_STAGE_MC_PROCESS)
+        g_last_mc_process_us = elapsed_us;
+}
+
+static void mc_enable_finish_frame_timing(void)
+{
+    g_stage_count++;
+    if (g_stage_count < MC_ENABLE_PROCESS_AVG_WINDOW)
+        return;
+
+    {
+        double avg[MC_ENABLE_STAGE_COUNT];
+        int i;
+        for (i = 0; i < MC_ENABLE_STAGE_COUNT; ++i)
+            avg[i] = ((double)g_stage_sum_us[i] / (double)MC_ENABLE_PROCESS_AVG_WINDOW) / 1000.0;
+        g_last_mc_process_avg30_ms = avg[MC_ENABLE_STAGE_MC_PROCESS];
+        MC_ENABLE_LOGI(
+            "Enable avg30(ms): total=%.2f resolve=%.2f query=%.2f session=%.2f acquire=%.2f process=%.2f | last process=%.2f",
+            avg[MC_ENABLE_STAGE_TOTAL],
+            avg[MC_ENABLE_STAGE_RESOLVE_MODEL],
+            avg[MC_ENABLE_STAGE_QUERY_SIZE],
+            avg[MC_ENABLE_STAGE_ENSURE_SESSION],
+            avg[MC_ENABLE_STAGE_ACQUIRE_OUTPUT],
+            avg[MC_ENABLE_STAGE_MC_PROCESS],
+            (double)g_last_mc_process_us / 1000.0);
+        for (i = 0; i < MC_ENABLE_STAGE_COUNT; ++i)
+            g_stage_sum_us[i] = 0;
+        g_stage_count = 0;
+    }
+}
 
 static void enable_fail(int code, const char* detail)
 {
@@ -106,10 +184,16 @@ static char g_model_path[256];
 static int g_has_model_path = 0;
 static char g_model_dir[512];
 static int g_has_model_dir = 0;
+/* Once resolve_default_model succeeds, reuse the path until mode/backend/path config changes. */
+static char g_cached_resolved_path[256];
+static int g_has_cached_resolved = 0;
+static alg_mode_e g_cached_resolved_mode = HIGH_SPEED_MODE;
+static magic_backend_e g_cached_resolved_backend = MAGIC_BACKEND_DEFAULT;
 
 static magic_backend_e platform_default_backend(void);
 static magic_backend_e resolve_backend(magic_backend_e backend);
 static void reset_session(void);
+static void invalidate_resolved_model_cache(void);
 
 /* Called from Metal dealloc guard before abort() if caller released our texture. */
 void mc_enable_note_output_stolen(void* output)
@@ -127,12 +211,54 @@ void MC_Enable_SetInputSizeHint(unsigned int width, unsigned int height)
     g_size_hint_h = height;
 }
 
+static void invalidate_resolved_model_cache(void)
+{
+    g_has_cached_resolved = 0;
+    g_cached_resolved_path[0] = '\0';
+}
+
+static int cache_resolved_model(const char* path,
+                                alg_mode_e mode,
+                                magic_backend_e resolved_backend)
+{
+    size_t len;
+    if (path == NULL || path[0] == '\0')
+        return -1;
+    len = strlen(path);
+    if (len + 1 > sizeof(g_cached_resolved_path))
+        return -1;
+    if (path != g_cached_resolved_path)
+        memcpy(g_cached_resolved_path, path, len + 1);
+    g_has_cached_resolved = 1;
+    g_cached_resolved_mode = mode;
+    g_cached_resolved_backend = resolved_backend;
+    return 0;
+}
+
+static int copy_and_cache_resolved_model(const char* path,
+                                         alg_mode_e mode,
+                                         magic_backend_e resolved_backend,
+                                         char* out,
+                                         size_t out_size)
+{
+    size_t len;
+    if (path == NULL || path[0] == '\0' || out == NULL || out_size == 0)
+        return -1;
+    len = strlen(path);
+    if (len + 1 > out_size)
+        return -1;
+    if (path != out)
+        memcpy(out, path, len + 1);
+    return cache_resolved_model(out, mode, resolved_backend);
+}
+
 void MC_Enable_SetModelPath(const char* model_path)
 {
     if (model_path == NULL || model_path[0] == '\0')
     {
         g_model_path[0] = '\0';
         g_has_model_path = 0;
+        invalidate_resolved_model_cache();
         reset_session();
         return;
     }
@@ -147,6 +273,7 @@ void MC_Enable_SetModelPath(const char* model_path)
     }
     memcpy(g_model_path, model_path, strlen(model_path) + 1);
     g_has_model_path = 1;
+    invalidate_resolved_model_cache();
     reset_session();
 }
 
@@ -156,6 +283,7 @@ void MC_Enable_SetModelDir(const char* model_dir)
     {
         g_model_dir[0] = '\0';
         g_has_model_dir = 0;
+        invalidate_resolved_model_cache();
         reset_session();
         return;
     }
@@ -170,6 +298,7 @@ void MC_Enable_SetModelDir(const char* model_dir)
     }
     memcpy(g_model_dir, model_dir, strlen(model_dir) + 1);
     g_has_model_dir = 1;
+    invalidate_resolved_model_cache();
     reset_session();
 }
 
@@ -422,9 +551,27 @@ static int resolve_default_model(char* out,
     }
     out[0] = '\0';
 
-    if (g_has_model_path && try_copy_path(out, out_size, g_model_path))
+    /* Hit cache: no fopen / directory walk on subsequent frames. */
+    if (g_has_cached_resolved &&
+        g_cached_resolved_mode == mode &&
+        g_cached_resolved_backend == resolved_backend &&
+        g_cached_resolved_path[0] != '\0')
     {
-        return 0;
+        if (!g_has_model_path || strcmp(g_cached_resolved_path, g_model_path) == 0)
+        {
+            const size_t len = strlen(g_cached_resolved_path);
+            if (len + 1 <= out_size)
+            {
+                memcpy(out, g_cached_resolved_path, len + 1);
+                return 0;
+            }
+        }
+    }
+
+    /* Explicit SetModelPath: trust the configured path (no per-frame readability check). */
+    if (g_has_model_path)
+    {
+        return copy_and_cache_resolved_model(g_model_path, mode, resolved_backend, out, out_size);
     }
 
     fill_default_model_names(resolved_backend, mode, names, &name_count);
@@ -439,32 +586,32 @@ static int resolve_default_model(char* out,
                                    names[i],
                                    MC_ENABLE_MODEL_DIR_MAX_DEPTH))
         {
-            return 0;
+            return cache_resolved_model(out, mode, resolved_backend);
         }
         if (join_dir_file(candidate, sizeof(candidate), "MagicSRModels", names[i]) &&
             try_copy_path(out, out_size, candidate))
         {
-            return 0;
+            return cache_resolved_model(out, mode, resolved_backend);
         }
         if (try_copy_path(out, out_size, names[i]))
         {
-            return 0;
+            return cache_resolved_model(out, mode, resolved_backend);
         }
 #if defined(SYS_ANDROID)
         if (join_dir_file(candidate, sizeof(candidate), "/sdcard/Documents/MagicSRModels", names[i]) &&
             try_copy_path(out, out_size, candidate))
         {
-            return 0;
+            return cache_resolved_model(out, mode, resolved_backend);
         }
         if (join_dir_file(candidate, sizeof(candidate), "/storage/emulated/0/Documents/MagicSRModels", names[i]) &&
             try_copy_path(out, out_size, candidate))
         {
-            return 0;
+            return cache_resolved_model(out, mode, resolved_backend);
         }
         if (join_dir_file(candidate, sizeof(candidate), "/storage/emulated/0/Documents", names[i]) &&
             try_copy_path(out, out_size, candidate))
         {
-            return 0;
+            return cache_resolved_model(out, mode, resolved_backend);
         }
 #endif
     }
@@ -472,7 +619,7 @@ static int resolve_default_model(char* out,
 #if defined(__APPLE__)
     if (mc_enable_resolve_bundle_model(out, out_size) == 0 && path_is_readable(out))
     {
-        return 0;
+        return cache_resolved_model(out, mode, resolved_backend);
     }
 #endif
 
@@ -961,6 +1108,8 @@ static void* enable_ex(void* input_texture,
     int ret;
     int session_err = 0;
     magic_backend_e resolved_backend;
+    const int64_t t_total0 = mc_enable_now_us();
+    int64_t t0;
 
     if (input_texture == NULL)
     {
@@ -998,9 +1147,14 @@ static void* enable_ex(void* input_texture,
         return NULL;
     }
 
+    mc_enable_note_stage(MC_ENABLE_STAGE_RESOLVE_MODEL, g_pending_resolve_model_us);
+    g_pending_resolve_model_us = 0;
+
     resolved_backend = resolve_backend(backend);
+    t0 = mc_enable_now_us();
     if (query_texture_size(input_texture, &width, &height, backend) != 0)
     {
+        mc_enable_note_stage(MC_ENABLE_STAGE_QUERY_SIZE, mc_enable_now_us() - t0);
         if (backend_requires_size_hint(resolved_backend))
         {
             enable_fail(MC_ENABLE_ERROR_SIZE_HINT_REQUIRED,
@@ -1012,14 +1166,17 @@ static void* enable_ex(void* input_texture,
         }
         return NULL;
     }
+    mc_enable_note_stage(MC_ENABLE_STAGE_QUERY_SIZE, mc_enable_now_us() - t0);
     if (width < 64 || width > 4032 || height < 64 || height > 4032)
     {
         enable_fail(MC_ENABLE_ERROR_SIZE_OUT_OF_RANGE, "width/height must be in [64, 4032]");
         return NULL;
     }
 
+    t0 = mc_enable_now_us();
     if (ensure_session(scale, width, height, mode, backend, model_path, &session_err) != 0)
     {
+        mc_enable_note_stage(MC_ENABLE_STAGE_ENSURE_SESSION, mc_enable_now_us() - t0);
         if (session_err == MC_ENABLE_ERROR_MODEL_PATH_TOO_LONG)
         {
             enable_fail(session_err, "model path too long");
@@ -1038,8 +1195,11 @@ static void* enable_ex(void* input_texture,
         }
         return NULL;
     }
+    mc_enable_note_stage(MC_ENABLE_STAGE_ENSURE_SESSION, mc_enable_now_us() - t0);
 
+    t0 = mc_enable_now_us();
     output = acquire_output(g_session, input_texture);
+    mc_enable_note_stage(MC_ENABLE_STAGE_ACQUIRE_OUTPUT, mc_enable_now_us() - t0);
     if (output == NULL)
     {
         enable_fail(MC_ENABLE_ERROR_OUTPUT_ACQUIRE, "failed to acquire output texture");
@@ -1047,19 +1207,37 @@ static void* enable_ex(void* input_texture,
         return NULL;
     }
 
+    t0 = mc_enable_now_us();
     ret = MC_Process(g_session, input_texture, output);
+    mc_enable_note_stage(MC_ENABLE_STAGE_MC_PROCESS, mc_enable_now_us() - t0);
     if (ret != 0)
     {
         enable_fail(ret, "MC_Process failed");
         return NULL;
     }
 
+    /* total = resolve(outside enable_ex) + timed stages inside enable_ex */
+    mc_enable_note_stage(MC_ENABLE_STAGE_TOTAL,
+                         g_stage_last_us[MC_ENABLE_STAGE_RESOLVE_MODEL] +
+                             (mc_enable_now_us() - t_total0));
+    mc_enable_finish_frame_timing();
     return output;
+}
+
+int64_t MC_Enable_GetLastProcessTimeUs(void)
+{
+    return g_last_mc_process_us;
+}
+
+double MC_Enable_GetLastProcessAvg30Ms(void)
+{
+    return g_last_mc_process_avg30_ms;
 }
 
 void* MC_Enable_4params(void* input_texture, float scale, alg_mode_e mode, magic_backend_e backend)
 {
     char model_path[256];
+    int64_t t0;
 
     if (mode < HIGH_SPEED_MODE || mode >= MAX_ALG_MODE)
     {
@@ -1071,52 +1249,63 @@ void* MC_Enable_4params(void* input_texture, float scale, alg_mode_e mode, magic
         enable_fail(MC_ENABLE_ERROR_BACKEND_INVALID, "backend invalid");
         return NULL;
     }
+    t0 = mc_enable_now_us();
     if (resolve_default_model(model_path,
                               sizeof(model_path),
                               mode,
                               resolve_backend(backend)) != 0)
     {
+        g_pending_resolve_model_us = mc_enable_now_us() - t0;
         enable_fail(MC_ENABLE_ERROR_MODEL_NOT_FOUND,
                     "call MC_Enable_SetModelPath/SetModelDir or place default model bin");
         return NULL;
     }
+    g_pending_resolve_model_us = mc_enable_now_us() - t0;
     return enable_ex(input_texture, scale, mode, backend, model_path);
 }
 
 void* MC_Enable_3params(void* input_texture, float scale, alg_mode_e mode)
 {
     char model_path[256];
+    int64_t t0;
 
     if (mode < HIGH_SPEED_MODE || mode >= MAX_ALG_MODE)
     {
         enable_fail(MC_ENABLE_ERROR_MODE_INVALID, "alg_mode invalid");
         return NULL;
     }
+    t0 = mc_enable_now_us();
     if (resolve_default_model(model_path,
                               sizeof(model_path),
                               mode,
                               resolve_backend(MAGIC_BACKEND_DEFAULT)) != 0)
     {
+        g_pending_resolve_model_us = mc_enable_now_us() - t0;
         enable_fail(MC_ENABLE_ERROR_MODEL_NOT_FOUND,
                     "call MC_Enable_SetModelPath/SetModelDir or place default model bin");
         return NULL;
     }
+    g_pending_resolve_model_us = mc_enable_now_us() - t0;
     return enable_ex(input_texture, scale, mode, MAGIC_BACKEND_DEFAULT, model_path);
 }
 
 void* MC_Enable(void* input_texture, float scale)
 {
     char model_path[256];
+    int64_t t0;
 
+    t0 = mc_enable_now_us();
     if (resolve_default_model(model_path,
                               sizeof(model_path),
                               HIGH_SPEED_MODE,
                               resolve_backend(MAGIC_BACKEND_DEFAULT)) != 0)
     {
+        g_pending_resolve_model_us = mc_enable_now_us() - t0;
         enable_fail(MC_ENABLE_ERROR_MODEL_NOT_FOUND,
                     "call MC_Enable_SetModelPath/SetModelDir or place default model bin");
         return NULL;
     }
+    g_pending_resolve_model_us = mc_enable_now_us() - t0;
     return enable_ex(input_texture,
                      scale,
                      HIGH_SPEED_MODE,

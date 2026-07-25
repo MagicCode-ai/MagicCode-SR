@@ -106,6 +106,19 @@ void MC_Enable_SetModelDir(const char* model_dir);
  */
 int MC_Disable(void* handle);
 
+/**
+ * @brief Wall-clock microseconds of the last MC_Process call inside MC_Enable*.
+ * @details Measured immediately around MC_Process only (excludes session init /
+ *          output acquire). Returns 0 before the first successful timing sample.
+ */
+int64_t MC_Enable_GetLastProcessTimeUs(void);
+
+/**
+ * @brief Latest completed 30-frame average (ms) of MC_Process inside MC_Enable*.
+ * @details Updated every 30 MC_Process samples; 0.0 until the first window completes.
+ */
+double MC_Enable_GetLastProcessAvg30Ms(void);
+
 #ifdef __cplusplus
 }
 #endif
