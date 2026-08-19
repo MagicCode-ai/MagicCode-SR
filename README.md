@@ -16,13 +16,13 @@ To evaluate MagicSR, we compared it with benchmark mobile SR solutions including
 
 ### iOS / iPadOS
 
-- Image quality: `MagicSR-Balanced > MagicSR-Speed >= MetalFX-Temporal > MetalFX-Spatial`
-- Processing speed: `MagicSR-Speed > MagicSR-Balanced > MetalFX-Spatial > MetalFX-Temporal`
+- Image quality: `MagicSR-Balanced > MagicSR-Speed > MetalFX-Spatial`
+- Processing speed: `MagicSR-Speed > MagicSR-Balanced > MetalFX-Spatial`
 
 ### Android
 
-- Image quality: `MagicSR-Balanced > MagicSR-Speed > SGSR2.0 > SGSR1.0`
-- Processing speed: `MagicSR-Speed ≈ SGSR1.0 > MagicSR-Balanced > SGSR2.0`
+- Image quality: `MagicSR-Balanced > MagicSR-Speed > SGSR1.0`
+- Processing speed: `MagicSR-Speed > SGSR1.0 > MagicSR-Balanced`
 
 ## 2x Super-Resolution Speed Data
 
@@ -30,19 +30,17 @@ To evaluate MagicSR, we compared it with benchmark mobile SR solutions including
 
 | Method | Time (ms) |
 | --- | ---: |
-| MagicSR Speed | 3.47 |
-| MagicSR Balanced | 4.83 |
+| MagicSR Speed | 3.12 |
+| MagicSR Balanced | 8.51 |
 | MetalFX Spatial | 8.82 |
-| MetalFX Temporal | 15.28 |
 
 ### Android Vulkan Super-Resolution Speed Comparison (Snapdragon 888, ms)
 
 | Method | Time (ms) |
 | --- | ---: |
+| MagicSR Speed | 3.93 |
 | SGSR1.0 | 4.678 |
-| MagicSR Speed | 4.581 |
-| MagicSR Balanced | 9.91 |
-| SGSR2.0 | 13.47 |
+| MagicSR Balanced | 17.82 |
 
 ## MagicSR Balanced vs Apple MetalFx
 
