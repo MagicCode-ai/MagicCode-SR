@@ -102,6 +102,7 @@ MagicSR supports mainstream CPU and GPU backends:
 - Neon
 - Metal
 - Vulkan
+- Dx11
 - OpenGLES
 - OpenGL
 
