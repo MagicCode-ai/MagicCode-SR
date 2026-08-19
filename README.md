@@ -42,16 +42,16 @@ To evaluate MagicSR, we compared it with benchmark mobile SR solutions including
 | SGSR1.0 | 4.678 |
 | MagicSR Balanced | 17.82 |
 
-## MagicSR Balanced vs Apple MetalFx
+## MagicSR Speed vs Apple MetalFx
 
 Side-by-side real-time 2× super-resolution in a 3D game on **iPhone 14 Pro**. Both pipelines render at **1920×1080** and upscale to **3840×2160**.
 
-| Left — MagicSR Balanced 2× | Right — MetalFX 2× |
+| Left — MagicSR Speed 2× | Right — MetalFX 2× |
 | --- | --- |
 | ~59.7 FPS, ~4.3 ms SR | ~36.6 FPS, ~14.6 ms SR |
 
 <a href="https://github.com/MagicCode-ai/SuperResolution/raw/main/README.assets/compare_magic_speed_vs_metalfx_2x_latest.mp4">
-  <img src="README.assets/compare_magic_speed_vs_metalfx_2x_preview.gif" width="880" alt="MagicSR Balanced vs Apple MetalFx — side-by-side 2x super-resolution demo">
+  <img src="README.assets/compare_magic_speed_vs_metalfx_2x_preview.gif" width="880" alt="MagicSR Speed vs Apple MetalFx — side-by-side 2x super-resolution demo">
 </a>
 
 [**▶ Watch full video (MP4)**](https://github.com/MagicCode-ai/SuperResolution/raw/main/README.assets/compare_magic_speed_vs_metalfx_2x_latest.mp4)
