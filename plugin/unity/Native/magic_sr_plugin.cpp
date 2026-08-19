@@ -117,7 +117,7 @@ extern "C" void* MagicSR_Enable_3params(void* input_texture, float scale, int al
 }
 
 extern "C" void* MagicSR_Enable(void* input_texture, float scale) {
-    return MagicSR_Enable_3params(input_texture, scale, HIGH_SPEED_MODE);
+    return MagicSR_Enable_3params(input_texture, scale, SPEED_MODE);
 }
 
 extern "C" int MagicSR_Disable(void* handle) {

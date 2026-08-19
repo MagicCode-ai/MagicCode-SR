@@ -21,7 +21,7 @@ namespace MagicSR.UnityPlugin
         public Texture sourceTexture;
         public string modelPath;
         [Range(1f, 8f)] public float scale = 2f;
-        public MagicSRAlgMode mode = MagicSRAlgMode.HighSpeed;
+        public MagicSRAlgMode mode = MagicSRAlgMode.Speed;
         public int numThreads = 1;
         public DemoPath path = DemoPath.TexturePreferred;
 

@@ -16,22 +16,13 @@ Core native libraries used by this plugin:
 
 ## 2) Deliverables
 
-Main plugin deliverables:
+Main plugin deliverables (pick the engine version and platform):
 
-- Plugin descriptor: `plugin/ue/MagicSR/MagicSR.uplugin`
-- Module build + source: `plugin/ue/MagicSR/Source/MagicSR/`
-- Blueprint API header: `plugin/ue/MagicSR/Source/MagicSR/Public/MagicSRBlueprintLibrary.h`
+- Plugin descriptor: `plugin/ue/UE_<version>/<Platform>/MagicSR/MagicSR.uplugin`
+- Module build + source: `plugin/ue/UE_<version>/<Platform>/MagicSR/Source/MagicSR/`
+- Blueprint API header: `plugin/ue/UE_<version>/<Platform>/MagicSR/Source/MagicSR/Public/MagicSRBlueprintLibrary.h`
 
-Sample project deliverables (smoke / QA only — not part of the published plugin):
-
-- Sample project: `plugin/ue/Samples/AndroidSmokeTest/`
-- Smoke runners live in the sample game module `Source/MagicSRUESmoke/` (not in `plugin/ue/MagicSR`)
-
-Verified snapshot deliverables (by engine version/platform):
-
-- `plugin/ue/verified/UE_<version>/Android/MagicSR`
-- `plugin/ue/verified/UE_<version>/Android/Logs`
-- `plugin/ue/verified/UE_<version>/IOS/...` (for iOS-verified versions)
+Supported snapshots: UE 5.0–5.5 Android; UE 5.6–5.8 Android and iOS.
 
 ## 3) Exposed Blueprint / C++ API
 
@@ -144,8 +135,8 @@ Mismatch / resolve guards:
 
 For Android runtime validation, put required model files into app-accessible storage:
 
-- `magic_highspeed_gpu_params.bin` (Vulkan path)
-- `magic_gles_highspeed_gpu_params.bin` (OpenGLES path)
+- `magic_speed_gpu_params.bin` (Vulkan path)
+- `magic_gles_speed_gpu_params.bin` (OpenGLES path)
 
 For iOS runtime tests, package/push model files into app sandbox `Documents` path.
 

@@ -8,8 +8,6 @@
 
 - `Native/`: Android native wrapper (`libmagic_sr_unity.so`)
 - `CSharp/`: Unity C# wrapper and realtime sample behavior
-- `Samples/AndroidSmokeTest/`: minimal Unity sample project
-- `tests/`: build verification scripts and reports
 
 ## Build native library
 
@@ -20,15 +18,6 @@ bash build_android.sh
 
 Output:
 - `plugin/unity/Native/build/libmagic_sr_unity.so`
-
-## Verify correctness (native stage)
-
-```bash
-cd plugin/unity/tests
-bash verify_android_build.sh
-```
-
-This generates `plugin/unity/tests/verification_report.md`.
 
 ## Validation
 

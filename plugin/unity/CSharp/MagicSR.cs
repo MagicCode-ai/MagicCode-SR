@@ -13,7 +13,7 @@ namespace MagicSR.UnityPlugin
 
         /// <summary>
         /// Set the directory that contains MagicSR model .bin files
-        /// (e.g. magic_gles_highspeed_gpu_params.bin). Call before Enable.
+        /// (e.g. magic_gles_speed_gpu_params.bin). Call before Enable.
         /// </summary>
         public static void SetModelDir(string modelDir)
         {

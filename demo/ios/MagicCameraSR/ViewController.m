@@ -47,7 +47,7 @@ static const NSTimeInterval kScaleApplyDelay = 0.08;
     self.view.backgroundColor = UIColor.blackColor;
     self.captureQueue = dispatch_queue_create("magic.magnifier.capture", DISPATCH_QUEUE_SERIAL);
     self.device = MTLCreateSystemDefaultDevice();
-    self.selectedMode = HIGH_SPEED_MODE;
+    self.selectedMode = SPEED_MODE;
     self.selectedScale = 2.0f;
     self.fullFrameWidth = 0;
     self.fullFrameHeight = 0;
@@ -89,7 +89,7 @@ static const NSTimeInterval kScaleApplyDelay = 0.08;
     stack.translatesAutoresizingMaskIntoConstraints = NO;
     [panel addSubview:stack];
 
-    self.modeControl = [[UISegmentedControl alloc] initWithItems:@[@"highspeed", @"speed"]];
+    self.modeControl = [[UISegmentedControl alloc] initWithItems:@[@"speed", @"balanced"]];
     self.modeControl.selectedSegmentIndex = 0;
     [self.modeControl addTarget:self action:@selector(modeChanged:) forControlEvents:UIControlEventValueChanged];
     [stack addArrangedSubview:self.modeControl];
@@ -203,7 +203,7 @@ static const NSTimeInterval kScaleApplyDelay = 0.08;
 }
 
 - (void)modeChanged:(UISegmentedControl *)sender {
-    self.selectedMode = sender.selectedSegmentIndex == 1 ? SPEED_MODE : HIGH_SPEED_MODE;
+    self.selectedMode = sender.selectedSegmentIndex == 1 ? BALANCED_MODE : SPEED_MODE;
     [self restartEngine];
 }
 
@@ -395,7 +395,7 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
                  mipmapLevel:0];
         UIImage *img = [self imageFromRgbaData:self.outputRgbaData width:outW height:outH];
         NSString *status = [NSString stringWithFormat:@"mode=%@ scale=x%@ crop=%zux%zu out=%zux%zu",
-                            self.selectedMode == SPEED_MODE ? @"speed" : @"highspeed",
+                            self.selectedMode == BALANCED_MODE ? @"balanced" : @"speed",
                             [self formatScale:self.selectedScale],
                             cropW, cropH, outW, outH];
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -524,13 +524,16 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     NSFileManager *fm = [NSFileManager defaultManager];
     for (NSString *name in names) {
         NSString *dst = [docs stringByAppendingPathComponent:name];
-        if ([fm fileExistsAtPath:dst]) continue;
         NSString *src = [NSBundle.mainBundle pathForResource:[name stringByDeletingPathExtension]
                                                       ofType:name.pathExtension];
         if (!src) {
             @throw [NSException exceptionWithName:@"ModelMissing" reason:[NSString stringWithFormat:@"missing bundle model: %@", name] userInfo:nil];
         }
         NSError *err = nil;
+        if ([fm fileExistsAtPath:dst]) {
+            [fm removeItemAtPath:dst error:&err];
+            err = nil;
+        }
         [fm copyItemAtPath:src toPath:dst error:&err];
         if (err || ![fm fileExistsAtPath:dst]) {
             @throw [NSException exceptionWithName:@"ModelCopyFailed"
@@ -541,7 +544,7 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
 }
 
 - (NSString *)modelPathForCurrentMode {
-    NSString *name = self.selectedMode == SPEED_MODE
+    NSString *name = self.selectedMode == BALANCED_MODE
         ? @"magic_metal_speed_gpu_params.bin"
         : @"magic_metal_highspeed_gpu_params.bin";
     NSString *path = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject

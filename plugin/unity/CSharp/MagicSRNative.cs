@@ -5,9 +5,9 @@ namespace MagicSR.UnityPlugin
 {
     public enum MagicSRAlgMode
     {
-        HighSpeed = 0,
-        Speed = 1,
-        UltraSpeed = HighSpeed
+        Speed = 0,
+        Balanced = 1,
+        UltraSpeed = Speed
     }
 
     public enum MagicSRInputType

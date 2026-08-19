@@ -62,7 +62,7 @@ void* MC_Enable(void* input_texture, float scale);
 
 /**
  * @brief Same as MC_Enable, with an explicit algorithm mode.
- * @param mode HIGH_SPEED_MODE or SPEED_MODE
+ * @param mode SPEED_MODE or BALANCED_MODE
  */
 void* MC_Enable_3params(void* input_texture, float scale, alg_mode_e mode);
 
@@ -81,6 +81,13 @@ void* MC_Enable_4params(void* input_texture, float scale, alg_mode_e mode, magic
  *          Hint values must be in [64, 4032].
  */
 void MC_Enable_SetInputSizeHint(unsigned int width, unsigned int height);
+
+/**
+ * @brief Set sharpen grade [0, 5] for the next MC_Enable* session.
+ * @details 0 = off. BALANCED uses RCAS; SPEED selects combined-bin segment 1+level.
+ *          Changing the level rebuilds the Enable session.
+ */
+void MC_Enable_SetSharpenLevel(unsigned int level);
 
 /**
  * @brief Set the full path to one model .bin used by the next MC_Enable*.
@@ -118,6 +125,22 @@ int64_t MC_Enable_GetLastProcessTimeUs(void);
  * @details Updated every 30 MC_Process samples; 0.0 until the first window completes.
  */
 double MC_Enable_GetLastProcessAvg30Ms(void);
+
+/**
+ * @brief Wall-clock microseconds of the last MC_Enable* call (full enable_ex).
+ * @details Includes resolve/query/session/acquire/MC_Process/QUERY_STATUS bookkeeping.
+ */
+int64_t MC_Enable_GetLastEnableTimeUs(void);
+
+/**
+ * @brief Latest completed 30-frame average (ms) of full MC_Enable* wall time.
+ */
+double MC_Enable_GetLastEnableAvg30Ms(void);
+
+/**
+ * @brief Last Metal BALANCED fused 1-CB GPU time in ms (preprocess + CS), or 0 if unavailable.
+ */
+double MC_Enable_GetLastFusedCbMs(void);
 
 #ifdef __cplusplus
 }

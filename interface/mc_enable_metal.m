@@ -54,8 +54,8 @@ int mc_enable_resolve_bundle_model(char* out_path, size_t out_size)
 {
     static const char* kNames[] = {
         "magic_veryfast_gpu_params.bin",
-        "magic_metal_highspeed_gpu_params.bin",
-        "magic_highspeed_gpu_params.bin",
+        "magic_metal_speed_gpu_params.bin",
+        "magic_speed_gpu_params.bin",
     };
     NSBundle* bundle = [NSBundle mainBundle];
     size_t i;

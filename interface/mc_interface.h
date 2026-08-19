@@ -43,15 +43,28 @@ typedef enum cmd_params_e {
 } cmd_params_e;
 
 typedef enum input_type_e {
-    INPUT_BUFFER = 0,
-    INPUT_TEXTURE_RGB8Unorm,
-    INPUT_TEXTURE_R8Unorm,
+    INPUT_BUFFER = 0,            /* legacy CPU R8 buffer */
+    INPUT_BUFFER_R8 = 0,         /* CPU R8 (alias of INPUT_BUFFER) */
+    INPUT_TEXTURE_RGB8Unorm = 1,
+    INPUT_TEXTURE_R8Unorm = 2,
+    INPUT_BUFFER_RGB = 3,        /* CPU planar RGB (RRR...GGG...BBB...) */
     MAX_INPUT_TYPE
 } input_type_e;
 
+static inline int magic_input_is_cpu_buffer(int input_type)
+{
+    return input_type == INPUT_BUFFER_R8 || input_type == INPUT_BUFFER_RGB;
+}
+
+static inline int magic_input_is_gpu_texture(int input_type)
+{
+    return input_type == INPUT_TEXTURE_RGB8Unorm ||
+           input_type == INPUT_TEXTURE_R8Unorm;
+}
+
 typedef enum alg_mode_e {
-    HIGH_SPEED_MODE = 0,
-    SPEED_MODE,
+    SPEED_MODE = 0,
+    BALANCED_MODE,
     MAX_ALG_MODE
 } alg_mode_e;
 
@@ -63,6 +76,7 @@ typedef enum magic_backend_e {
     MAGIC_BACKEND_OPENGL = 4,
     MAGIC_BACKEND_OPENGLES = 5,
     MAGIC_BACKEND_VULKAN = 6,
+    MAGIC_BACKEND_D3D11 = 7,
 } magic_backend_e;
 
 typedef enum log_level_e {
@@ -72,6 +86,98 @@ typedef enum log_level_e {
     MAGIC_LOG_INFO,
     MAGIC_LOG_DEBUG
 } log_level_e;
+
+/**
+ * @brief Input parameter structure for algorithm initialization and configuration
+ * @details Contains all input parameters required for MC algorithm initialization,
+ * including image data, model path, and algorithm runtime settings
+ */
+typedef struct input_param_t {
+    input_type_e input_type; //0 = buffer, 1 = r8_texture
+    char model_path[256];          // File path of the pre-trained model (max 255 characters + null terminator)
+    unsigned int width;            // Width of the input image (pixel units), valid range: [64, 4032]
+    unsigned int height;           // Height of the input image (pixel units), valid range: [64, 4032]
+    float scaler_factor;           // Requested super-resolution scaling factor, valid range: [1, 8]. x86/neon accept implemented integer scales only.
+    alg_mode_e alg_mode;         // Algorithm runtime mode. 0 = speed mode, 1 = balanced mode.
+    unsigned int num_threads;      // Number of CPU threads for parallel computation, valid range: [1, 8]
+                                   // Note: Multi-threading takes effect only when the image height >= 256 lines
+    log_level_e log_level;
+    magic_backend_e backend;       // Runtime backend selector: x86/neon/metal/opengl/opengles/vulkan.
+    unsigned int sharpen_level;    // Sharpen grade [0, 5]. 0 = off, 5 = strongest.
+                                   // BALANCED: RCAS att = (5-level)*0.2; 0 skips RCAS.
+                                   // SPEED: selects combined-bin segment 1+level.
+} input_param_t;
+
+typedef struct control_param_t {
+    unsigned int width;            // Width of the input image (pixel units), valid range: [64, 4032]
+    unsigned int height;           // Height of the input image (pixel units), valid range: [64, 4032]
+    float scaler_factor;           // Requested super-resolution scaling factor, valid range: [1, 8]. x86/neon accept implemented integer scales only.
+    alg_mode_e alg_mode;         // Algorithm runtime mode. 0 = speed mode, 1 = balanced mode.
+    char model_path[256];          // File path of the pre-trained model (max 255 characters + null terminator)
+} control_param_t;
+
+/**
+ * @brief Output status parameter structure for algorithm query
+ * @details Stores the returned status and parameters when querying the algorithm,
+ * including input/output image dimensions, runtime settings, and error code
+ */
+typedef struct output_status_params_t {
+    unsigned int width;            // Width of the original input image (pixel units)
+    unsigned int height;           // Height of the original input image (pixel units)
+    unsigned int output_width;     // Width of the super-resolved output image (pixel units)
+    unsigned int output_height;    // Height of the super-resolved output image (pixel units)
+    float scaler_factor;           // Current requested super-resolution scaling factor in use
+    alg_mode_e alg_mode;         // Current algorithm runtime mode 
+    input_type_e input_type;
+    magic_backend_e backend;
+    unsigned int num_threads;      // Current number of CPU threads in use
+    unsigned int sharpen_level;    // Sharpen grade [0, 5]. 0 = off, 5 = strongest.
+    double gpu_time;
+    unsigned int error_code;       // Algorithm error code: 0 = No error, non-zero = specific error (refer to error code specification)
+} output_status_params_t;
+
+/**
+ * @brief Initialize the MC super-resolution algorithm and create a handle
+ * @param param Pointer to the input parameter structure (input_param_t), contains initialization configuration
+ * @return void* - Algorithm handle (opaque pointer) for subsequent API calls; NULL = Initialization failed (invalid params/model not found/etc.)
+ * @note The handle must be retained for other API functions and released via MC_Uninit()
+ */
+void* MC_Init(input_param_t* param);
+
+/**
+ * @brief Perform super-resolution processing on the input image
+ * @param handle Valid algorithm handle created by MC_Init()
+ * @param image_in Pointer to the input image data buffer (raw pixel data)
+ * @return unsigned char* - Pointer to the super-resolved output image data buffer; NULL = Processing failed
+ * @note The output buffer is allocated internally by the algorithm. Copy the data immediately after retrieval,
+ * as the buffer may be reclaimed or overwritten in subsequent calls
+ */
+int MC_Process(void* handle, void *image_in, void *image_out);
+
+/**
+ * @brief Control interface for setting parameters or querying status
+ * @param handle Valid algorithm handle created by MC_Init()
+ * @param cmd Command type (cmd_params_e): SET_PARAM for setting, QUERY_STATUS for querying
+ * @param ctrl Pointer to input parameters (used only when cmd = SET_PARAM; NULL for QUERY_STATUS)
+ * @param output Pointer to output status structure (used only when cmd = QUERY_STATUS)
+ * @return int - 0 = Operation succeeded; -1 = Operation failed (invalid handle/cmd/params)
+ */
+int MC_Control(void* handle, cmd_params_e cmd, control_param_t* ctrl, output_status_params_t* output);
+
+/**
+ * @brief Release all resources allocated by the MC algorithm
+ * @param handle Algorithm handle created by MC_Init() (NULL is allowed, no operation performed)
+ * @return int - 0 = Resource release succeeded; -1 = Release failed (invalid handle/residual resources)
+ * @note After calling this function, the handle becomes invalid and cannot be used in other APIs
+ */
+int MC_Uninit(void* handle);
+
+/**
+ * @brief Get the version string of the MC algorithm library
+ * @return char* - Pointer to the null-terminated version string (e.g., "v1.2.0"); never returns NULL
+ * @note The version string is a static constant, do not free the pointer
+ */
+char *MC_GetVersion(void);
 
 /* Public error codes returned by MC_* APIs or exposed through output_status_params_t.error_code. */
 #define MC_ERROR_INIT_NULL_PARAM                  (-100001) /* MC_Init received a NULL input_param_t pointer. */
@@ -87,8 +193,8 @@ typedef enum log_level_e {
 #define MC_ERROR_INIT_MODEL_PATH_TOO_LONG         (-100011) /* Model path exceeds the supported length. */
 #define MC_ERROR_INIT_LOAD_PARAMS_FAILED          (-100012) /* Model parameters could not be loaded. */
 #define MC_ERROR_INIT_TYPE_SIZE_MISMATCH          (-100013) /* Model primary data type size does not match the backend. */
-#define MC_ERROR_INIT_HIGH_SPEED_TYPE_MISMATCH    (-100014) /* High-speed model secondary data type size is invalid. */
-#define MC_ERROR_INIT_SPEED_TYPE_MISMATCH         (-100015) /* Speed model secondary data type size is invalid. */
+#define MC_ERROR_INIT_SPEED_TYPE_MISMATCH    (-100014) /* Speed model secondary data type size is invalid. */
+#define MC_ERROR_INIT_BALANCED_TYPE_MISMATCH         (-100015) /* Balanced model secondary data type size is invalid. */
 #define MC_ERROR_INIT_QUANT_SCALER_INVALID        (-100016) /* Quantization scaler is incompatible with the current build. */
 #define MC_ERROR_INIT_STORE_MODE_INVALID          (-100017) /* Model store mode is incompatible with data type sizes. */
 #define MC_ERROR_INIT_NEON_QUANT_SHIFT_MISMATCH   (-100018) /* NEON speed mode quantization shift is unsupported. */
@@ -121,6 +227,7 @@ typedef enum log_level_e {
 #define MC_ERROR_INIT_MODEL_STORE_MODE_INVALID    (-100045) /* Model store mode value is unsupported. */
 #define MC_ERROR_INIT_MODEL_DATA_SHORT_READ       (-100046) /* Model payload is shorter than expected. */
 #define MC_ERROR_INIT_MODEL_TAIL_INVALID          (-100047) /* Model tail marker is invalid. */
+#define MC_ERROR_INIT_SHARPEN_LEVEL_OUT_OF_RANGE  (-100048) /* sharpen_level is outside [0, 5]. */
 #define MC_ERROR_MEMORY_INIT_PARAMS_ALLOC_FAILED  (-200001) /* Memory allocation failed while parsing model parameters. */
 #define MC_ERROR_MEMORY_INIT_REINIT_ALLOC_FAILED  (-200002) /* Memory allocation failed during reinitialization. */
 #define MC_ERROR_MEMORY_INIT_THREAD_ALLOC_FAILED  (-200003) /* Memory allocation failed during thread pool initialization. */
@@ -168,94 +275,6 @@ typedef enum log_level_e {
 
 #define MC_WARNING_MEMORY_LEAK_ON_FREE            (100001) /* Memory leak detected while freeing an internal handle. */
 #define MC_WARNING_MEMORY_LEAK_ON_UNINIT          (100002) /* Memory leak detected while uninitializing the API handle. */
-
-/**
- * @brief Input parameter structure for algorithm initialization and configuration
- * @details Contains all input parameters required for MC algorithm initialization,
- * including image data, model path, and algorithm runtime settings
- */
-typedef struct input_param_t {
-    input_type_e input_type; //0 = buffer, 1 = r8_texture
-    char model_path[256];          // File path of the pre-trained model (max 255 characters + null terminator)
-    unsigned int width;            // Width of the input image (pixel units), valid range: [64, 4032]
-    unsigned int height;           // Height of the input image (pixel units), valid range: [64, 4032]
-    float scaler_factor;           // Requested super-resolution scaling factor, valid range: [1, 8]. x86/neon accept implemented integer scales only.
-    alg_mode_e alg_mode;         // Algorithm runtime mode. 0 = high speed mode, 1 = speed mode.
-    unsigned int num_threads;      // Number of CPU threads for parallel computation, valid range: [1, 8]
-                                   // Note: Multi-threading takes effect only when the image height >= 256 lines
-    log_level_e log_level;
-    magic_backend_e backend;       // Runtime backend selector: x86/neon/metal/opengl/opengles/vulkan.
-} input_param_t;
-
-typedef struct control_param_t {
-    unsigned int width;            // Width of the input image (pixel units), valid range: [64, 4032]
-    unsigned int height;           // Height of the input image (pixel units), valid range: [64, 4032]
-    float scaler_factor;           // Requested super-resolution scaling factor, valid range: [1, 8]. x86/neon accept implemented integer scales only.
-    alg_mode_e alg_mode;         // Algorithm runtime mode. 0 = high speed mode, 1 = speed mode.
-    char model_path[256];          // File path of the pre-trained model (max 255 characters + null terminator)
-} control_param_t;
-
-/**
- * @brief Output status parameter structure for algorithm query
- * @details Stores the returned status and parameters when querying the algorithm,
- * including input/output image dimensions, runtime settings, and error code
- */
-typedef struct output_status_params_t {
-    unsigned int width;            // Width of the original input image (pixel units)
-    unsigned int height;           // Height of the original input image (pixel units)
-    unsigned int output_width;     // Width of the super-resolved output image (pixel units)
-    unsigned int output_height;    // Height of the super-resolved output image (pixel units)
-    float scaler_factor;           // Current requested super-resolution scaling factor in use
-    alg_mode_e alg_mode;         // Current algorithm runtime mode 
-    input_type_e input_type;
-    magic_backend_e backend;
-    unsigned int num_threads;      // Current number of CPU threads in use
-    double gpu_time;
-    unsigned int error_code;       // Algorithm error code: 0 = No error, non-zero = specific error (refer to error code specification)
-} output_status_params_t;
-
-/**
- * @brief Initialize the MC super-resolution algorithm and create a handle
- * @param param Pointer to the input parameter structure (input_param_t), contains initialization configuration
- * @return void* - Algorithm handle (opaque pointer) for subsequent API calls; NULL = Initialization failed (invalid params/model not found/etc.)
- * @note The handle must be retained for other API functions and released via MC_Uninit()
- */
-void* MC_Init(input_param_t* param);
-
-/**
- * @brief Perform super-resolution processing on the input image
- * @param handle Valid algorithm handle created by MC_Init()
- * @param image_in Pointer to the input image data buffer (raw pixel data)
- * @return unsigned char* - Pointer to the super-resolved output image data buffer; NULL = Processing failed
- * @note The output buffer is allocated internally by the algorithm. Copy the data immediately after retrieval,
- * as the buffer may be reclaimed or overwritten in subsequent calls
- */
-int MC_Process(void* handle, void *image_in, void *image_out);
-
-/**
- * @brief Control interface for setting parameters or querying status
- * @param handle Valid algorithm handle created by MC_Init()
- * @param cmd Command type (cmd_params_e): SET_PARAM for setting, QUERY_STATUS for querying
- * @param ctrl Pointer to input parameters (used only when cmd = SET_PARAM; NULL for QUERY_STATUS)
- * @param output Pointer to output status structure (used only when cmd = QUERY_STATUS)
- * @return int - 0 = Operation succeeded; -1 = Operation failed (invalid handle/cmd/params)
- */
-int MC_Control(void* handle, cmd_params_e cmd, control_param_t* ctrl, output_status_params_t* output);
-
-/**
- * @brief Release all resources allocated by the MC algorithm
- * @param handle Algorithm handle created by MC_Init() (NULL is allowed, no operation performed)
- * @return int - 0 = Resource release succeeded; -1 = Release failed (invalid handle/residual resources)
- * @note After calling this function, the handle becomes invalid and cannot be used in other APIs
- */
-int MC_Uninit(void* handle);
-
-/**
- * @brief Get the version string of the MC algorithm library
- * @return char* - Pointer to the null-terminated version string (e.g., "v1.2.0"); never returns NULL
- * @note The version string is a static constant, do not free the pointer
- */
-char *MC_GetVersion(void);
 
 #ifdef __cplusplus
 }

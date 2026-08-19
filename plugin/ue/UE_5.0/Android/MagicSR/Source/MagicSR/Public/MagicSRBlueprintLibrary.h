@@ -84,7 +84,7 @@ public:
      * Session is reused across calls when scale/size/mode/backend are unchanged.
      * Do not free/delete the returned pointer — call Disable() only.
      * Scale in [1,8]; <=0 => 2.0f.
-     * AlgMode: 0=HighSpeed, 1=Speed. Backend: 0=Default, 3=Metal, 5=OpenGLES, 6=Vulkan.
+     * AlgMode: 0=Speed, 1=Balanced. Backend: 0=Default, 3=Metal, 5=OpenGLES, 6=Vulkan.
      */
     UFUNCTION(BlueprintCallable, Category = "MagicSR|Easy")
     static int64 Enable(int64 InputNativeTexture, float Scale);

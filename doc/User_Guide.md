@@ -368,15 +368,13 @@ Build scripts:
 
 ### 5.2 Unreal Engine
 
-1. Copy the plugin into the project: `<YourProject>/Plugins/MagicSR`  
+1. Copy the matching engine folder into the project, for example `plugin/ue/UE_5.8/Android/MagicSR` → `<YourProject>/Plugins/MagicSR`  
 2. Link the release libraries:  
-   - `lib/android/libmagic_sr.a`  
-   - `lib/ios/libmagic_sr.a`  
+   - `lib/android/libmagic_sr_enable.a`  
+   - `lib/ios/libmagic_sr_enable.a`  
 3. Enable MagicSR in `.uproject`, regenerate project files / open the editor  
 4. Call `Enable` / `Disable` from Blueprint or C++  
 5. Place models under `Content/MagicSRModels/`
-
-Sample project: `plugin/ue/Samples/AndroidSmokeTest/`
 
 ### 5.3 Native
 

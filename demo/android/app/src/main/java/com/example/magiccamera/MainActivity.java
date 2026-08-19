@@ -49,8 +49,8 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MagicMagnifierUI";
     private static final int INPUT_WIDTH = 1920;
     private static final int INPUT_HEIGHT = 1080;
-    private static final int MODE_HIGH_SPEED = 0;
-    private static final int MODE_SPEED = 1;
+    private static final int MODE_SPEED = 0;
+    private static final int MODE_BALANCED = 1;
     private static final int BACKEND_OPENGLES = 5;
     private static final float MIN_SCALE = 1.0f;
     private static final float MAX_SCALE = 8.0f;
@@ -64,8 +64,8 @@ public class MainActivity extends AppCompatActivity {
 
     private ImageView outputView;
     private TextView statusText;
-    private TextView modeHighBtn;
     private TextView modeSpeedBtn;
+    private TextView modeBalancedBtn;
     private TextView scaleLabel;
     private SeekBar scaleSeekBar;
     private ScaleTickView scaleTickView;
@@ -77,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
     private ProcessCameraProvider cameraProvider;
     private volatile boolean running;
     private long srHandle;
-    private int selectedMode = MODE_HIGH_SPEED;
+    private int selectedMode = MODE_SPEED;
     private volatile float selectedScale = 2.0f;
     private int engineInitWidth = -1;
     private int engineInitHeight = -1;
@@ -152,13 +152,13 @@ public class MainActivity extends AppCompatActivity {
         LinearLayout modeRow = new LinearLayout(this);
         modeRow.setOrientation(LinearLayout.HORIZONTAL);
         modeRow.setGravity(Gravity.CENTER_VERTICAL);
-        modeHighBtn = buildModeButton("highspeed", true, () -> selectMode(MODE_HIGH_SPEED));
-        modeSpeedBtn = buildModeButton("speed", false, () -> selectMode(MODE_SPEED));
-        modeRow.addView(modeHighBtn);
-        LinearLayout.LayoutParams speedParams = new LinearLayout.LayoutParams(
+        modeSpeedBtn = buildModeButton("speed", true, () -> selectMode(MODE_SPEED));
+        modeBalancedBtn = buildModeButton("balanced", false, () -> selectMode(MODE_BALANCED));
+        modeRow.addView(modeSpeedBtn);
+        LinearLayout.LayoutParams balancedParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        speedParams.leftMargin = 12;
-        modeRow.addView(modeSpeedBtn, speedParams);
+        balancedParams.leftMargin = 12;
+        modeRow.addView(modeBalancedBtn, balancedParams);
         controls.addView(modeRow);
 
         scaleTouchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
@@ -265,12 +265,12 @@ public class MainActivity extends AppCompatActivity {
         if (scaleLabel != null) {
             scaleLabel.setText("scale=x" + formatScale(selectedScale));
         }
-        if (modeHighBtn != null && modeSpeedBtn != null) {
-            boolean high = selectedMode == MODE_HIGH_SPEED;
-            modeHighBtn.setBackgroundColor(high ? 0xffffffff : 0xff444444);
-            modeHighBtn.setTextColor(high ? 0xff000000 : 0xffffffff);
-            modeSpeedBtn.setBackgroundColor(high ? 0xff444444 : 0xffffffff);
-            modeSpeedBtn.setTextColor(high ? 0xffffffff : 0xff000000);
+        if (modeSpeedBtn != null && modeBalancedBtn != null) {
+            boolean speed = selectedMode == MODE_SPEED;
+            modeSpeedBtn.setBackgroundColor(speed ? 0xffffffff : 0xff444444);
+            modeSpeedBtn.setTextColor(speed ? 0xff000000 : 0xffffffff);
+            modeBalancedBtn.setBackgroundColor(speed ? 0xff444444 : 0xffffffff);
+            modeBalancedBtn.setTextColor(speed ? 0xffffffff : 0xff000000);
         }
     }
 
@@ -567,7 +567,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private String modelPathForCurrentMode() {
-        String name = selectedMode == MODE_SPEED
+        String name = selectedMode == MODE_BALANCED
                 ? "magic_gles_speed_gpu_params.bin"
                 : "magic_gles_highspeed_gpu_params.bin";
         File model = new File(new File(getFilesDir(), "models"), name);
@@ -578,7 +578,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private String modeName() {
-        return selectedMode == MODE_SPEED ? "speed" : "highspeed";
+        return selectedMode == MODE_BALANCED ? "balanced" : "speed";
     }
 
     private static String formatScale(float scale) {

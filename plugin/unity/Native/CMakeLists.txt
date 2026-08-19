@@ -6,19 +6,23 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-stack-protector -U_FORTIFY_SOURCE")
 
 set(MAGIC_ROOT ${CMAKE_CURRENT_LIST_DIR}/../../..)
 set(MAGIC_RELEASE_ROOT ${MAGIC_ROOT}/../release/v1.1.0)
-set(MAGIC_LIB_PATH ${MAGIC_RELEASE_ROOT}/lib/android/libmagic_sr.a)
+# Prefer current tree libs (v1.2 SPEED/BALANCED + combined bins). Release v1.1.0 is last resort.
+set(MAGIC_LIB_PATH "")
+foreach(_candidate
+    ${MAGIC_ROOT}/lib/android/libmagic_sr.a
+    ${MAGIC_ROOT}/build/android/build/libmagic_sr.a
+    ${MAGIC_RELEASE_ROOT}/lib/android/libmagic_sr.a
+    ${MAGIC_ROOT}/../github/MagicCode-SR/lib/android/libmagic_sr.a)
+  if(EXISTS ${_candidate})
+    set(MAGIC_LIB_PATH ${_candidate})
+    break()
+  endif()
+endforeach()
 
-if(NOT EXISTS ${MAGIC_LIB_PATH})
-    set(MAGIC_LIB_PATH ${MAGIC_ROOT}/build/android/build/libmagic_sr.a)
-endif()
-
-if(NOT EXISTS ${MAGIC_LIB_PATH})
-    set(MAGIC_LIB_PATH ${MAGIC_ROOT}/../github/MagicCode-SR/lib/android/libmagic_sr.a)
-endif()
-
-if(NOT EXISTS ${MAGIC_LIB_PATH})
+if(NOT MAGIC_LIB_PATH)
     message(FATAL_ERROR "Missing Android libmagic_sr.a (core lib without mc_enable)")
 endif()
+message(STATUS "MagicSR Unity linking core: ${MAGIC_LIB_PATH}")
 
 # MC_Enable is compiled into the plugin, not libmagic_sr.a
 add_library(magic_sr_unity SHARED
