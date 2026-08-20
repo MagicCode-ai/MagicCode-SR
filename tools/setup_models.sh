@@ -23,14 +23,14 @@ need_src() {
 
 # GPU models used by Enable (skip CPU-only bins by default)
 GPU_MODELS=(
-  magic_metal_highspeed_gpu_params.bin
   magic_metal_speed_gpu_params.bin
-  magic_gl_highspeed_gpu_params.bin
+  magic_metal_balanced_gpu_params.bin
   magic_gl_speed_gpu_params.bin
-  magic_gles_highspeed_gpu_params.bin
+  magic_gl_balanced_gpu_params.bin
   magic_gles_speed_gpu_params.bin
-  magic_vulkan_highspeed_gpu_params.bin
+  magic_gles_balanced_gpu_params.bin
   magic_vulkan_speed_gpu_params.bin
+  magic_vulkan_balanced_gpu_params.bin
 )
 
 copy_gpu_models() {
@@ -55,10 +55,16 @@ setup_demo_android() {
 }
 
 setup_demo_ios() {
-  # iOS demo typically copies from a known folder into sandbox at runtime.
-  local dest="${REPO_ROOT}/demo/ios/MagicCameraSR/MagicSRModels"
-  copy_gpu_models "${dest}"
-  log "iOS demo models at: ${dest}"
+  # iOS demos copy from a known folder into sandbox at runtime / build script.
+  local dests=(
+    "${REPO_ROOT}/demo/ios/MagicCameraSR/MagicSRModels"
+    "${REPO_ROOT}/demo/ipad_demo/camera/MagicCameraSR/MagicSRModels"
+  )
+  local dest
+  for dest in "${dests[@]}"; do
+    copy_gpu_models "${dest}"
+    log "iOS demo models at: ${dest}"
+  done
   log "Call MC_Enable_SetModelPath / SetModelDir for these files (see demo ViewController)."
 }
 

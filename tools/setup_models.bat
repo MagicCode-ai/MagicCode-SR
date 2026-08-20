@@ -51,14 +51,14 @@ goto usage
 set "OUTDIR=%~1"
 if not exist "%OUTDIR%\" mkdir "%OUTDIR%"
 for %%F in (
-  magic_metal_highspeed_gpu_params.bin
   magic_metal_speed_gpu_params.bin
-  magic_gl_highspeed_gpu_params.bin
+  magic_metal_balanced_gpu_params.bin
   magic_gl_speed_gpu_params.bin
-  magic_gles_highspeed_gpu_params.bin
+  magic_gl_balanced_gpu_params.bin
   magic_gles_speed_gpu_params.bin
-  magic_vulkan_highspeed_gpu_params.bin
+  magic_gles_balanced_gpu_params.bin
   magic_vulkan_speed_gpu_params.bin
+  magic_vulkan_balanced_gpu_params.bin
 ) do (
   if exist "%MODEL_SRC%\%%F" (
     copy /Y "%MODEL_SRC%\%%F" "%OUTDIR%\%%F" >nul
