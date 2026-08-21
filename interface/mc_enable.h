@@ -85,7 +85,7 @@ void MC_Enable_SetInputSizeHint(unsigned int width, unsigned int height);
 /**
  * @brief Set sharpen grade [0, 5] for the next MC_Enable* session.
  * @details 0 = off. BALANCED uses RCAS; SPEED selects combined-bin segment 1+level.
- *          Changing the level rebuilds the Enable session.
+ *          The new grade is applied the next time MC_Enable* runs (no immediate uninit).
  */
 void MC_Enable_SetSharpenLevel(unsigned int level);
 

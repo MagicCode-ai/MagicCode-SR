@@ -17,12 +17,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#define VERYFAST_SR 0x00
-#define FAST_SR 0x01
-#define MAGIC_SR 0x10
-
 #define SCALER_FACTOR (2)
-#define MAGIC_SR_MODE FAST_SR
 #define NUM_THREADS (4)
 #define UT_TEST (0)
 #define UT_TEST_USED_VIDEO (1)
@@ -36,23 +31,7 @@
 #define CHECK_RLSP_CORRECTNESS (0)
 
 #define MODEL_ROOT_PATH "../../model/"
-#if MAGIC_SR_MODE==VERYFAST_SR
-#if SCALER_FACTOR==2
-#define MODEL_PATH MODEL_ROOT_PATH"magic_highspeedx2_cpu_params.bin"
-#elif SCALER_FACTOR==3
-#define MODEL_PATH MODEL_ROOT_PATH"magic_highspeedx3_cpu_params.bin"
-#elif SCALER_FACTOR==4
-#define MODEL_PATH MODEL_ROOT_PATH"magic_highspeedx4_cpu_params.bin"
-#endif
-#elif MAGIC_SR_MODE==FAST_SR
-#if SCALER_FACTOR==2
-#define MODEL_PATH MODEL_ROOT_PATH"magic_speedx2_cpu_params.bin"
-#elif SCALER_FACTOR==3
-#define MODEL_PATH MODEL_ROOT_PATH"magic_speedx3_cpu_params.bin"
-#elif SCALER_FACTOR==4
-#define MODEL_PATH MODEL_ROOT_PATH"magic_speedx4_cpu_params.bin"
-#endif
-#endif
+#define MODEL_PATH MODEL_ROOT_PATH"magic_sr_cpu_params.bin"
 
 #if CHECK_RLSP_CORRECTNESS
 
@@ -97,10 +76,10 @@ ut_test_t uttest = {
     {INPUT_BUFFER, INPUT_TEXTURE_RGB8Unorm, INPUT_TEXTURE_R8Unorm},
     {HR_PATH,"/work/05.sequence/dataset/Set5/LR/",
     "/work/05.sequence/dataset/Set5/LRx3/","/work/05.sequence/dataset/Set5/LRx4/"},
-    { MODEL_ROOT_PATH"magic_highspeedx2_cpu_params.bin", MODEL_ROOT_PATH"magic_highspeedx3_cpu_params.bin", MODEL_ROOT_PATH"magic_highspeedx4_cpu_params.bin",
-      MODEL_ROOT_PATH"magic_speedx2_cpu_params.bin", MODEL_ROOT_PATH"magic_speedx3_cpu_params.bin", MODEL_ROOT_PATH"magic_speedx4_cpu_params.bin"},
-    { MODEL_ROOT_PATH"magic_metal_highspeed_gpu_params.bin", MODEL_ROOT_PATH"magic_metal_speed_gpu_params.bin"},
-    {HIGH_SPEED_MODE, SPEED_MODE},
+    { MODEL_ROOT_PATH"magic_sr_cpu_params.bin", MODEL_ROOT_PATH"magic_sr_cpu_params.bin", MODEL_ROOT_PATH"magic_sr_cpu_params.bin",
+      MODEL_ROOT_PATH"magic_sr_cpu_params.bin", MODEL_ROOT_PATH"magic_sr_cpu_params.bin", MODEL_ROOT_PATH"magic_sr_cpu_params.bin"},
+    { MODEL_ROOT_PATH"magic_sr_gpu_params.bin", MODEL_ROOT_PATH"magic_sr_gpu_params.bin"},
+    {SPEED_MODE, BALANCED_MODE},
     {1.5, 2, 3},
     {
         35.97,35.93,27.26,33.68,31.76,
@@ -203,6 +182,7 @@ int32_t example()
                 param.input_type = uttest.input_type[t];
                 param.log_level = MAGIC_LOG_INFO;
                 param.backend = MAGIC_BACKEND_NEON;
+                param.sharpen_level = 3;
                 if(param.input_type > 0)
                 {
                     param.backend = MAGIC_BACKEND_METAL;

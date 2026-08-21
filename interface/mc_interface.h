@@ -19,8 +19,8 @@
  *              initialization, image processing, parameter control, resource release,
  *              and version query.
  * @author      MagicCode  Team
- * @date        2026-08-20
- * @version     V1.2.1
+ * @date        2026-08-21
+ * @version     V1.2.2
  * @copyright   Copyright (C) 2024-2026 MagicCode Technology Co., Ltd. All rights reserved.
  * @website     https://www.magiccode-ai.com
  ************************************************************************************/

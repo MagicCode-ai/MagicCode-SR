@@ -224,10 +224,10 @@ void MC_Enable_SetSharpenLevel(unsigned int level)
 {
     if (level > 5u)
         level = 5u;
-    if (g_sharpen_level == level)
-        return;
+    /* Only store the grade. Rebuilding here would MC_Uninit a live Metal/GLES
+     * session if the UI thread calls this while Enable/Process is on the
+     * capture/render thread. ensure_session() rebuilds on the next MC_Enable*. */
     g_sharpen_level = level;
-    reset_session();
 }
 
 static void invalidate_resolved_model_cache(void)
