@@ -22,29 +22,19 @@ if not exist "%GRADLEW%" (
 )
 
 call :require_file "%INTERFACE_DIR%\mc_interface.h"
-call :require_file "%INTERFACE_DIR%\mc_enable.h"
-call :require_file "%ANDROID_LIB_DIR%\libmagic_sr_enable.a"
-call :require_file "%IOS_LIB_DIR%\libmagic_sr_enable.a"
-
-call :require_file "%MODEL_DIR%\magic_gles_highspeed_gpu_params.bin"
-call :require_file "%MODEL_DIR%\magic_gles_speed_gpu_params.bin"
-call :require_file "%MODEL_DIR%\magic_metal_highspeed_gpu_params.bin"
-call :require_file "%MODEL_DIR%\magic_metal_speed_gpu_params.bin"
+call :require_file "%ROOT%\android\app\src\main\cpp\mc_interface.h"
+call :require_file "%ROOT%\ios\MagicCameraSR\mc_interface.h"
+call :require_file "%ANDROID_LIB_DIR%\libmagic_sr.a"
+call :require_file "%IOS_LIB_DIR%\libmagic_sr.a"
 
 if not exist "%ASSETS_MODEL_DIR%" mkdir "%ASSETS_MODEL_DIR%"
 if not exist "%PACKAGES_DIR%" mkdir "%PACKAGES_DIR%"
 
-echo [INFO] Copying Android model files...
-copy /Y "%MODEL_DIR%\magic_gles_highspeed_gpu_params.bin" "%ASSETS_MODEL_DIR%\" >nul
-if errorlevel 1 (
-  echo [ERROR] Failed to copy magic_gles_highspeed_gpu_params.bin
-  exit /b 1
-)
-copy /Y "%MODEL_DIR%\magic_gles_speed_gpu_params.bin" "%ASSETS_MODEL_DIR%\" >nul
-if errorlevel 1 (
-  echo [ERROR] Failed to copy magic_gles_speed_gpu_params.bin
-  exit /b 1
-)
+echo [INFO] Copying Android GLES model files (if present)...
+if exist "%MODEL_DIR%\magic_gles_speed_gpu_params.bin" copy /Y "%MODEL_DIR%\magic_gles_speed_gpu_params.bin" "%ASSETS_MODEL_DIR%\" >nul
+if exist "%MODEL_DIR%\magic_gles_balanced_gpu_params.bin" copy /Y "%MODEL_DIR%\magic_gles_balanced_gpu_params.bin" "%ASSETS_MODEL_DIR%\" >nul
+if exist "%MODEL_DIR%\magic_gles_highspeed_gpu_params.bin" copy /Y "%MODEL_DIR%\magic_gles_highspeed_gpu_params.bin" "%ASSETS_MODEL_DIR%\" >nul
+if exist "%MODEL_DIR%\magic_sr_gpu_params.bin" copy /Y "%MODEL_DIR%\magic_sr_gpu_params.bin" "%ASSETS_MODEL_DIR%\" >nul
 
 echo [INFO] Building Android Debug APK...
 pushd "%ANDROID_DIR%"
@@ -61,8 +51,7 @@ copy /Y "%ANDROID_DIR%\app\build\outputs\apk\debug\app-debug.apk" "%PACKAGES_DIR
 echo.
 echo [SUCCESS] Android build complete.
 echo [SUCCESS] APK: %PACKAGES_DIR%\MagicMagnifierSR-android-arm64.apk
-echo [INFO] Install: adb install -r "%PACKAGES_DIR%\MagicMagnifierSR-android-arm64.apk"
-echo [INFO] iOS: open demo\ios\MagicCameraSR.xcodeproj, or see README for packaging notes.
+echo [INFO] iOS: build on macOS via Xcode generic iOS destination (core lib is device arm64).
 exit /b 0
 
 :require_file

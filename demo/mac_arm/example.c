@@ -1,7 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "../../interface/mc_interface.h"
+#include "mc_interface.h"
+#include <stdint.h>
 #include "metal.h"
 #include "img_process.h"
 #ifdef _WIN32
@@ -61,6 +62,56 @@
 
 #define __DEBUG (0)
 
+enum {
+    MC_MTL_RGBA8UNORM = 70u, /* MTLPixelFormatRGBA8Unorm */
+    MC_MTL_R8UNORM = 10u     /* MTLPixelFormatR8Unorm */
+};
+
+/* Same as product src/magic_backend.h scaled_dimension. */
+static uint32_t scaled_dimension(uint32_t value, float scaler)
+{
+    double scaled = (double)value * (double)scaler;
+    if (scaled < 1.0)
+        return 1;
+    if (scaled > (double)UINT32_MAX)
+        return UINT32_MAX;
+    return (uint32_t)floor(scaled + 0.5);
+}
+
+static int mc_wrap_process(void *handle, void *in, void *out, input_type_e input_type, magic_backend_e backend)
+{
+    magic_frame_t f;
+    memset(&f, 0, sizeof(f));
+    if (backend == MAGIC_BACKEND_METAL && input_type != INPUT_BUFFER && input_type != INPUT_BUFFER_R8) {
+        f.image_in.handle.pointer = in;
+        f.image_out.handle.pointer = out;
+        if (input_type == INPUT_TEXTURE_R8Unorm) {
+            f.image_in.format = MC_MTL_R8UNORM;
+            f.image_out.format = MC_MTL_R8UNORM;
+        } else {
+            f.image_in.format = MC_MTL_RGBA8UNORM;
+            f.image_out.format = MC_MTL_RGBA8UNORM;
+        }
+        f.image_in.mip_count = 1;
+        f.image_out.mip_count = 1;
+    } else if (backend == MAGIC_BACKEND_OPENGLES || backend == MAGIC_BACKEND_OPENGL) {
+        f.image_in.handle.gl_texture = (uint32_t)(uintptr_t)in;
+        f.image_out.handle.gl_texture = (uint32_t)(uintptr_t)out;
+        f.image_in.format = 0x8058; /* GL_RGBA8 */
+        f.image_out.format = 0x8058;
+        f.image_in.target = 0x0DE1; /* GL_TEXTURE_2D */
+        f.image_out.target = 0x0DE1;
+        f.image_in.mip_count = 1;
+        f.image_out.mip_count = 1;
+    } else {
+        f.image_in.handle.pointer = in;
+        f.image_out.handle.pointer = out;
+    }
+    f.frame = NULL;
+    f.command_buffer = NULL;
+    return MC_Process(handle, &f);
+}
+
 typedef struct ut_test_t
 {
     input_type_e input_type[3];
@@ -79,7 +130,7 @@ ut_test_t uttest = {
     { MODEL_ROOT_PATH"magic_sr_cpu_params.bin", MODEL_ROOT_PATH"magic_sr_cpu_params.bin", MODEL_ROOT_PATH"magic_sr_cpu_params.bin",
       MODEL_ROOT_PATH"magic_sr_cpu_params.bin", MODEL_ROOT_PATH"magic_sr_cpu_params.bin", MODEL_ROOT_PATH"magic_sr_cpu_params.bin"},
     { MODEL_ROOT_PATH"magic_sr_gpu_params.bin", MODEL_ROOT_PATH"magic_sr_gpu_params.bin"},
-    {SPEED_MODE, BALANCED_MODE},
+    {SPATIAL_SPEED_MODE, SPATIAL_BALANCED_MODE},
     {1.5, 2, 3},
     {
         35.97,35.93,27.26,33.68,31.76,
@@ -131,11 +182,11 @@ int32_t example()
     double duration;
 
     float video_scale[3] = {1.5, 2,3 };
-    char* video_gt_path[2] = {"/work/05.sequence/540p/xiaoxiongmao_1024x540.yuv",
+    char* video_gt_path[3] = {"/work/05.sequence/540p/xiaoxiongmao_1024x540.yuv",
                               "/work/05.sequence/1080p/xiaoxiongmao_2048x1080.yuv",
                               "/work/05.sequence/4k/IMG_gt_3840x2160.yuv" };
     
-    char* video_path[2][3] = {{"/work/05.sequence/540p/xiaoxiongmao_682x360.yuv",
+    char* video_path[3][3] = {{"/work/05.sequence/540p/xiaoxiongmao_682x360.yuv",
                                 "/work/05.sequence/540p/xiaoxiongmao_512x270.yuv",
                                 "/work/05.sequence/540p/xiaoxiongmao_512x270.yuv" },
                                 {"/work/05.sequence/540p/xiaoxiongmao_1024x540.yuv",
@@ -174,6 +225,8 @@ int32_t example()
             for (int thread_nums = 0; thread_nums < max_thread_nums; thread_nums++)
             {
                 input_param_t param;
+                memset(&param, 0, sizeof(param));
+                param.struct_size = (uint32_t)sizeof(param);
                 param.height = video_gt_height[v]/video_scale[0];
                 param.width = video_gt_width[v]/video_scale[0];
                 param.scaler_factor = uttest.scaler_factor[0];
@@ -182,7 +235,7 @@ int32_t example()
                 param.input_type = uttest.input_type[t];
                 param.log_level = MAGIC_LOG_INFO;
                 param.backend = MAGIC_BACKEND_NEON;
-                param.sharpen_level = 3;
+                param.spatial_sharpen_level = 3;
                 if(param.input_type > 0)
                 {
                     param.backend = MAGIC_BACKEND_METAL;
@@ -237,19 +290,21 @@ int32_t example()
                         double sr_time_ms[8];
                         double sr_gpu_time_ms = 0.0;
                         double ffmpeg_ms = 0.0f;
-                        double sr_psnr_t[8] = {0.0, 0.0, 0.0, 0,0, 0.0, 0.0, 0.0, 0,0};
+                        double sr_psnr_t[8] = {0};
                         memset(sr_time_ms, 0, 8 * sizeof(double));
                         
                         uint8_t* out_y_sr = NULL;
                         void *rgba_texture_out = NULL;
+                        int core_out_w = (int)scaled_dimension((uint32_t)src_width, uttest.scaler_factor[x]);
+                        int core_out_h = (int)scaled_dimension((uint32_t)src_height, uttest.scaler_factor[x]);
                         if(param.input_type > INPUT_BUFFER)
                         {
-                            rgba_texture_out = creat_texture2d(src_width * uttest.scaler_factor[x], src_height * uttest.scaler_factor[x],
+                            rgba_texture_out = creat_texture2d(core_out_w, core_out_h,
                                                                param.input_type, 2);
                         }
                         else
                         {
-                            out_y_sr = (uint8_t*)malloc(src_width * uttest.scaler_factor[x] * src_height * uttest.scaler_factor[x] * sizeof(uint8_t));
+                            out_y_sr = (uint8_t*)malloc((size_t)core_out_w * (size_t)core_out_h * sizeof(uint8_t));
                         }
                         
                         printf("\n-----loop: %d, input size: %dx%d, scaler_factor: %2.2f, sr_mode: %d, input_type: %d-----\n", v, src_width, src_height, uttest.scaler_factor[x], uttest.alg_mode[y], param.input_type);
@@ -328,7 +383,7 @@ int32_t example()
                             struct timeval begin, end;
                             gettimeofday(&begin, 0);
                             
-                            int ret = MC_Process(handle, rgba_texture, rgba_texture_out);
+                            int ret = mc_wrap_process(handle, rgba_texture, rgba_texture_out, param.input_type, param.backend);
                             //image_scale(out_y_sr, param.image, video_gt_width, video_gt_height,0.5);//video_scale[x]);
                             
                             gettimeofday(&end, 0);
@@ -432,6 +487,8 @@ int32_t main() {
     
     example();
 
+#ifdef _WIN32
 	system("pause");
+#endif
 	return 0;
 }

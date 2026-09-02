@@ -4,9 +4,10 @@
  * @file        mc_enable.h
  * @brief       Two-call Enable/Disable API for MagicCode Super-Resolution
  * @details     Only MC_Enable* + MC_Disable are required for the simple path.
- *              Prefer linking libmagic_sr_enable.a (core + Enable). The core-only
- *              libmagic_sr.a does not export MC_Enable*; advanced session users
- *              may still link that and omit Enable.
+ *              Prefer linking libmagic_sr_enable.a (core + Enable). On Windows
+ *              the product name is libmagic_enable_sr.lib. The core-only
+ *              libmagic_sr.a / libmagic_sr.lib does not export MC_Enable*;
+ *              advanced session users may still link that and omit Enable.
  *              MC_Enable lazily creates a session, runs one SR frame, and returns
  *              the output GPU texture. MC_Disable releases everything.
  *
@@ -49,10 +50,13 @@ extern "C" {
  *          On failure returns NULL and logs a clear error code to logcat / stderr.
  * @param input_texture Native GPU texture (first argument — not scale):
  *        - macOS / iOS Metal: MTLTexture* (RGBA8Unorm)
- *        - Windows OpenGL: GLuint texture id cast to void* (RGBA8)
+ *        - Windows OpenGL (Enable default): GLuint texture id cast to void* (RGBA8)
  *        - Android OpenGLES: GLuint as void* (RGBA8)
- *        - Android Vulkan: VulkanTexture* / RGB8Unorm
- * @param scale Super-resolution scale in [1.0, 8.0]; pass 0 (or <= 0) for default 2.0
+ *        - Android / Windows Vulkan: VulkanTexture* / RGB8Unorm
+ *        Enable does not accept MAGIC_BACKEND_D3D11.
+ * @param scale Super-resolution scale in [1.0, 8.0]; pass 0 (or <= 0) for default 2.0.
+ *        This path feeds a single color texture into MC_Process. It cannot
+ *        supply per-frame depth, motion, or jitter.
  * @return Output GPU texture pointer owned by the library until MC_Disable().
  *         NULL on failure. Do not free / CFRelease / glDelete the returned
  *         pointer -- on Metal an erroneous CFRelease aborts at the release site
@@ -62,14 +66,23 @@ void* MC_Enable(void* input_texture, float scale);
 
 /**
  * @brief Same as MC_Enable, with an explicit algorithm mode.
- * @param mode SPEED_MODE or BALANCED_MODE
+ * @param mode Any alg_mode_e in [SPATIAL_SPEED_MODE, MAX_ALG_MODE).
+ *        Spatial modes are the intended Enable path.
+ *        Temporal enums are accepted by range check, but Enable still
+ *        provides only one input texture and no per-frame depth / motion /
+ *        jitter / camera / command-buffer contract. Complete temporal
+ *        integration must use libmagic_sr + mc_interface.h
+ *        (MC_Init / MC_Process / MC_Uninit), not this API.
  */
 void* MC_Enable_3params(void* input_texture, float scale, alg_mode_e mode);
 
 /**
  * @brief Same as MC_Enable_3params, with an explicit runtime backend.
  * @param backend MAGIC_BACKEND_DEFAULT selects the platform default
- *        (Metal / OpenGL / OpenGLES / Vulkan). Other values force that backend.
+ *        (Metal / OpenGL / OpenGLES / Vulkan). Values through
+ *        MAGIC_BACKEND_VULKAN are accepted; MAGIC_BACKEND_D3D11 is not
+ *        an Enable backend. Temporal completeness still requires the
+ *        session API regardless of backend.
  */
 void* MC_Enable_4params(void* input_texture, float scale, alg_mode_e mode, magic_backend_e backend);
 
@@ -77,14 +90,15 @@ void* MC_Enable_4params(void* input_texture, float scale, alg_mode_e mode, magic
  * @brief Set input width/height for backends that cannot query texture size.
  * @details Required before MC_Enable* on Android OpenGLES and Android Vulkan
  *          (both return MC_ENABLE_ERROR_SIZE_HINT_REQUIRED without a valid hint).
- *          Optional on Metal / Windows OpenGL. Pass 0,0 to clear.
+ *          Optional on Metal / Windows OpenGL (and Windows Vulkan when
+ *          size can be queried). Pass 0,0 to clear.
  *          Hint values must be in [64, 4032].
  */
 void MC_Enable_SetInputSizeHint(unsigned int width, unsigned int height);
 
 /**
  * @brief Set sharpen grade [0, 5] for the next MC_Enable* session.
- * @details 0 = off. BALANCED uses RCAS; SPEED selects combined-bin segment 1+level.
+ * @details 0 = off. BALANCED applies output sharpening; SPEED selects combined-bin segment 1+level.
  *          The new grade is applied the next time MC_Enable* runs (no immediate uninit).
  */
 void MC_Enable_SetSharpenLevel(unsigned int level);

@@ -82,6 +82,66 @@ static int g_vk_out_valid = 0;
     do { fprintf(stderr, "[MagicSR][Enable] " __VA_ARGS__); fputc('\n', stderr); } while (0)
 #endif
 
+static int mc_wrap_process(void *handle, void *in, void *out)
+{
+    magic_frame_t f;
+    output_status_params_t st;
+    memset(&f, 0, sizeof(f));
+    memset(&st, 0, sizeof(st));
+    if (handle != NULL && MC_Control(handle, QUERY_STATUS, NULL, &st) == 0) {
+        switch (st.backend) {
+        case MAGIC_BACKEND_VULKAN:
+            if (in)
+                f.image_in.handle.vk_image = *(const uint64_t *)in;
+            if (out)
+                f.image_out.handle.vk_image = *(const uint64_t *)out;
+            break;
+        case MAGIC_BACKEND_OPENGL:
+        case MAGIC_BACKEND_OPENGLES:
+            f.image_in.handle.gl_texture = (uint32_t)(uintptr_t)in;
+            f.image_out.handle.gl_texture = (uint32_t)(uintptr_t)out;
+            break;
+        case MAGIC_BACKEND_METAL:
+        case MAGIC_BACKEND_D3D11:
+            if (st.input_type == INPUT_BUFFER || st.input_type == INPUT_BUFFER_RGB) {
+                f.image_in.handle.pointer = in;
+                f.image_out.handle.pointer = out;
+            } else {
+                f.image_in.handle.pointer = in;
+                f.image_out.handle.pointer = out;
+            }
+            break;
+        case MAGIC_BACKEND_DEFAULT:
+#if defined(__APPLE__)
+            if (st.input_type == INPUT_BUFFER || st.input_type == INPUT_BUFFER_RGB) {
+                f.image_in.handle.pointer = in;
+                f.image_out.handle.pointer = out;
+            } else {
+                f.image_in.handle.pointer = in;
+                f.image_out.handle.pointer = out;
+            }
+#elif defined(_WIN32)
+            f.image_in.handle.gl_texture = (uint32_t)(uintptr_t)in;
+            f.image_out.handle.gl_texture = (uint32_t)(uintptr_t)out;
+#else
+            if (in)
+                f.image_in.handle.vk_image = *(const uint64_t *)in;
+            if (out)
+                f.image_out.handle.vk_image = *(const uint64_t *)out;
+#endif
+            break;
+        default:
+            f.image_in.handle.pointer = in;
+            f.image_out.handle.pointer = out;
+            break;
+        }
+    } else {
+        f.image_in.handle.pointer = in;
+        f.image_out.handle.pointer = out;
+    }
+    return MC_Process(handle, &f);
+}
+
 static const float MC_ENABLE_DEFAULT_SCALE = 2.0f;
 static const float MC_ENABLE_SCALE_EPS = 1.0e-3f;
 static const int MC_ENABLE_PROCESS_AVG_WINDOW = 30;
@@ -182,13 +242,13 @@ static void* g_output = NULL;
 static float g_scale = 0.0f;
 static unsigned int g_width = 0;
 static unsigned int g_height = 0;
-static alg_mode_e g_alg_mode = SPEED_MODE;
+static alg_mode_e g_alg_mode = SPATIAL_SPEED_MODE;
 static magic_backend_e g_backend = MAGIC_BACKEND_DEFAULT;
 static int g_output_owned = 0; /* 1 = we created it (Metal/GL); 0 = borrowed (Vulkan) */
 static unsigned int g_size_hint_w = 0;
 static unsigned int g_size_hint_h = 0;
-static unsigned int g_sharpen_level = 0;
-static unsigned int g_session_sharpen_level = 0;
+static unsigned int g_spatial_sharpen_level = 0;
+static unsigned int g_session_spatial_sharpen_level = 0;
 static char g_model_path[256];
 static int g_has_model_path = 0;
 static char g_model_dir[512];
@@ -196,7 +256,7 @@ static int g_has_model_dir = 0;
 /* Once resolve_default_model succeeds, reuse the path until mode/backend/path config changes. */
 static char g_cached_resolved_path[256];
 static int g_has_cached_resolved = 0;
-static alg_mode_e g_cached_resolved_mode = SPEED_MODE;
+static alg_mode_e g_cached_resolved_mode = SPATIAL_SPEED_MODE;
 static magic_backend_e g_cached_resolved_backend = MAGIC_BACKEND_DEFAULT;
 
 static magic_backend_e platform_default_backend(void);
@@ -227,7 +287,7 @@ void MC_Enable_SetSharpenLevel(unsigned int level)
     /* Only store the grade. Rebuilding here would MC_Uninit a live Metal/GLES
      * session if the UI thread calls this while Enable/Process is on the
      * capture/render thread. ensure_session() rebuilds on the next MC_Enable*. */
-    g_sharpen_level = level;
+    g_spatial_sharpen_level = level;
 }
 
 static void invalidate_resolved_model_cache(void)
@@ -479,7 +539,7 @@ static int try_find_file_under_dir(char* out,
 /*
  * Default model matrix (platform × backend × alg_mode):
  *
- * | Platform       | Backend   | SPEED_MODE                         | BALANCED_MODE                              |
+ * | Platform       | Backend   | SPATIAL_SPEED_MODE                         | SPATIAL_BALANCED_MODE                              |
  * |----------------|-----------|-----------------------------------------|-----------------------------------------|
  * | iOS / macOS    | Metal     | magic_metal_speed_gpu_params.bin    | magic_metal_balanced_gpu_params.bin        |
  * | Windows        | OpenGL    | magic_gl_speed_gpu_params.bin       | magic_gl_balanced_gpu_params.bin           |
@@ -516,16 +576,16 @@ static void fill_default_model_names(magic_backend_e backend,
     case MAGIC_BACKEND_METAL:
         /* BALANCED: 4-dir A/B; SPEED: 2-dir A/B (same LUT layout, different ensemble). */
         primary = "magic_sr_gpu_params.bin";
-        alternate = (mode == BALANCED_MODE) ? "magic_srlut_gpu_params.bin"
+        alternate = (mode == SPATIAL_BALANCED_MODE) ? "magic_srlut_gpu_params.bin"
                                          : "magic_srlut_2dir_gpu_params.bin";
         break;
     case MAGIC_BACKEND_OPENGL:
     case MAGIC_BACKEND_OPENGLES:
     case MAGIC_BACKEND_VULKAN:
     case MAGIC_BACKEND_D3D11:
-        /* Combined 7-seg bin: BALANCED=seg0, SPEED=seg(1+sharpen_level). */
+        /* Combined 7-seg bin: BALANCED=seg0, SPEED=seg(1+spatial_sharpen_level). */
         primary = "magic_sr_gpu_params.bin";
-        alternate = (mode == BALANCED_MODE) ? "magic_srlut_gpu_params.bin"
+        alternate = (mode == SPATIAL_BALANCED_MODE) ? "magic_srlut_gpu_params.bin"
                                          : "magic_srlut_2dir_gpu_params.bin";
         break;
     case MAGIC_BACKEND_X86:
@@ -897,7 +957,7 @@ static void reset_session(void)
     g_scale = 0.0f;
     g_width = 0;
     g_height = 0;
-    g_alg_mode = SPEED_MODE;
+    g_alg_mode = SPATIAL_SPEED_MODE;
     g_backend = MAGIC_BACKEND_DEFAULT;
 }
 
@@ -1041,7 +1101,7 @@ static int ensure_session(float scale,
         g_height == height &&
         g_alg_mode == mode &&
         g_backend == resolved_backend &&
-        g_session_sharpen_level == g_sharpen_level)
+        g_session_spatial_sharpen_level == g_spatial_sharpen_level)
     {
         return 0;
     }
@@ -1082,7 +1142,7 @@ static int ensure_session(float scale,
     params.alg_mode = mode;
     params.num_threads = 1;
     params.log_level = MAGIC_LOG_INFO;
-    params.sharpen_level = g_sharpen_level;
+    params.spatial_sharpen_level = g_spatial_sharpen_level;
 
     g_session = MC_Init(&params);
     if (g_session == NULL)
@@ -1106,7 +1166,7 @@ static int ensure_session(float scale,
     g_height = height;
     g_alg_mode = mode;
     g_backend = resolved_backend;
-    g_session_sharpen_level = g_sharpen_level;
+    g_session_spatial_sharpen_level = g_spatial_sharpen_level;
     return 0;
 }
 
@@ -1144,7 +1204,7 @@ static void* enable_ex(void* input_texture,
         enable_fail(MC_ENABLE_ERROR_SCALE_OUT_OF_RANGE, "scale must be in [1.0, 8.0]");
         return NULL;
     }
-    if (mode < SPEED_MODE || mode >= MAX_ALG_MODE)
+    if (mode < SPATIAL_SPEED_MODE || mode >= MAX_ALG_MODE)
     {
         enable_fail(MC_ENABLE_ERROR_MODE_INVALID, "alg_mode invalid");
         return NULL;
@@ -1226,7 +1286,7 @@ static void* enable_ex(void* input_texture,
     }
 
     t0 = mc_enable_now_us();
-    ret = MC_Process(g_session, input_texture, output);
+    ret = mc_wrap_process(g_session, input_texture, output);
     mc_enable_note_stage(MC_ENABLE_STAGE_MC_PROCESS, mc_enable_now_us() - t0);
     if (ret != 0)
     {
@@ -1281,7 +1341,7 @@ void* MC_Enable_4params(void* input_texture, float scale, alg_mode_e mode, magic
     char model_path[256];
     int64_t t0;
 
-    if (mode < SPEED_MODE || mode >= MAX_ALG_MODE)
+    if (mode < SPATIAL_SPEED_MODE || mode >= MAX_ALG_MODE)
     {
         enable_fail(MC_ENABLE_ERROR_MODE_INVALID, "alg_mode invalid");
         return NULL;
@@ -1311,7 +1371,7 @@ void* MC_Enable_3params(void* input_texture, float scale, alg_mode_e mode)
     char model_path[256];
     int64_t t0;
 
-    if (mode < SPEED_MODE || mode >= MAX_ALG_MODE)
+    if (mode < SPATIAL_SPEED_MODE || mode >= MAX_ALG_MODE)
     {
         enable_fail(MC_ENABLE_ERROR_MODE_INVALID, "alg_mode invalid");
         return NULL;
@@ -1339,7 +1399,7 @@ void* MC_Enable(void* input_texture, float scale)
     t0 = mc_enable_now_us();
     if (resolve_default_model(model_path,
                               sizeof(model_path),
-                              SPEED_MODE,
+                              SPATIAL_SPEED_MODE,
                               resolve_backend(MAGIC_BACKEND_DEFAULT)) != 0)
     {
         g_pending_resolve_model_us = mc_enable_now_us() - t0;
@@ -1350,7 +1410,7 @@ void* MC_Enable(void* input_texture, float scale)
     g_pending_resolve_model_us = mc_enable_now_us() - t0;
     return enable_ex(input_texture,
                      scale,
-                     SPEED_MODE,
+                     SPATIAL_SPEED_MODE,
                      MAGIC_BACKEND_DEFAULT,
                      model_path);
 }

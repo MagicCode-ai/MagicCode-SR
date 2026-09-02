@@ -8,7 +8,8 @@
 #import <stdlib.h>
 #import <string.h>
 
-#include "mc_enable.h"
+#include "mc_interface.h"
+#include <stdint.h>
 
 static const int32_t kInputWidth = 1920;
 static const int32_t kInputHeight = 1080;
@@ -30,6 +31,10 @@ static const NSTimeInterval kScaleApplyDelay = 0.08;
 @property(nonatomic) alg_mode_e selectedMode;
 @property(nonatomic) float selectedScale;
 @property(nonatomic, strong) id<MTLTexture> inputTexture;
+@property(nonatomic, strong) id<MTLTexture> outputTexture;
+@property(nonatomic) void *srHandle;
+@property(nonatomic) float engineScale;
+@property(nonatomic) alg_mode_e engineMode;
 @property(nonatomic, strong) NSMutableData *fullRgbaData;
 @property(nonatomic, strong) NSMutableData *cropRgbaData;
 @property(nonatomic, strong) NSMutableData *outputRgbaData;
@@ -38,6 +43,9 @@ static const NSTimeInterval kScaleApplyDelay = 0.08;
 @property(nonatomic) size_t fullFrameHeight;
 @property(nonatomic) size_t inputTexWidth;
 @property(nonatomic) size_t inputTexHeight;
+@property(nonatomic) size_t outputTexWidth;
+@property(nonatomic) size_t outputTexHeight;
+@property(nonatomic) BOOL loggedFirstProcess;
 @end
 
 @implementation ViewController
@@ -47,12 +55,19 @@ static const NSTimeInterval kScaleApplyDelay = 0.08;
     self.view.backgroundColor = UIColor.blackColor;
     self.captureQueue = dispatch_queue_create("magic.magnifier.capture", DISPATCH_QUEUE_SERIAL);
     self.device = MTLCreateSystemDefaultDevice();
-    self.selectedMode = SPEED_MODE;
+    self.selectedMode = SPATIAL_SPEED_MODE;
     self.selectedScale = 2.0f;
+    self.srHandle = NULL;
     self.fullFrameWidth = 0;
     self.fullFrameHeight = 0;
     self.inputTexWidth = 0;
     self.inputTexHeight = 0;
+    self.outputTexWidth = 0;
+    self.outputTexHeight = 0;
+    self.engineScale = -1.0f;
+    self.engineMode = (alg_mode_e)MAX_ALG_MODE;
+    self.loggedFirstProcess = NO;
+    NSLog(@"[MagicMagnifierSR] loaded MC_GetVersion=%s", MC_GetVersion());
     [self buildUi];
 
     @try {
@@ -65,8 +80,14 @@ static const NSTimeInterval kScaleApplyDelay = 0.08;
 }
 
 - (void)dealloc {
-    MC_Disable(NULL);
     [self.session stopRunning];
+    if (self.captureQueue) {
+        dispatch_sync(self.captureQueue, ^{
+            [self restartEngineUnsafe];
+        });
+    } else {
+        [self restartEngineUnsafe];
+    }
 }
 
 - (void)buildUi {
@@ -203,7 +224,7 @@ static const NSTimeInterval kScaleApplyDelay = 0.08;
 }
 
 - (void)modeChanged:(UISegmentedControl *)sender {
-    self.selectedMode = sender.selectedSegmentIndex == 1 ? BALANCED_MODE : SPEED_MODE;
+    self.selectedMode = sender.selectedSegmentIndex == 1 ? SPATIAL_BALANCED_MODE : SPATIAL_SPEED_MODE;
     [self restartEngine];
 }
 
@@ -368,34 +389,54 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
         size_t cropH = [self evenSize:llround((double)height / (double)self.selectedScale) max:height];
         size_t cropX = (width - cropW) / 2;
         size_t cropY = (height - cropH) / 2;
+        /* Core output size: floor(value * scale + 0.5) in double (magic_backend.h). */
+        size_t outW = [self scaledDimension:cropW scale:self.selectedScale];
+        size_t outH = [self scaledDimension:cropH scale:self.selectedScale];
         [self ensureInputTextureForWidth:cropW height:cropH];
+        [self ensureOutputTextureForWidth:outW height:outH];
         [self uploadCropToInputTextureFromFullX:cropX y:cropY width:cropW height:cropH];
-        [self prepareMetalEnableModelEnvironment];
+        [self ensureSessionForWidth:cropW height:cropH scale:self.selectedScale mode:self.selectedMode];
+        outW = self.outputTexWidth;
+        outH = self.outputTexHeight;
 
-        void *outPtr = MC_Enable_3params((__bridge void *)self.inputTexture,
-                                         self.selectedScale,
-                                         self.selectedMode);
-        if (outPtr == NULL) {
-            @throw [NSException exceptionWithName:@"MCEnableError"
-                                           reason:[NSString stringWithFormat:@"MC_Enable_3params failed scale=%.2f mode=%d",
-                                                   self.selectedScale, (int)self.selectedMode]
+        magic_frame_t frame;
+        memset(&frame, 0, sizeof(frame));
+        frame.image_in.handle.pointer = (__bridge void *)self.inputTexture;
+        frame.image_in.format = (uint32_t)MTLPixelFormatRGBA8Unorm;
+        frame.image_in.mip_count = 1;
+        frame.image_out.handle.pointer = (__bridge void *)self.outputTexture;
+        frame.image_out.format = (uint32_t)MTLPixelFormatRGBA8Unorm;
+        frame.image_out.mip_count = 1;
+        frame.frame = NULL;
+        /* Spatial Metal: MC_Process ignores command_buffer and waits internally
+         * (speed_sr_process / balanced_sr_process commit + waitUntilCompleted). */
+        frame.command_buffer = NULL;
+
+        int ret = MC_Process(self.srHandle, &frame);
+        if (ret != 0) {
+            @throw [NSException exceptionWithName:@"MCProcessError"
+                                           reason:[NSString stringWithFormat:@"MC_Process failed ret=%d scale=%.2f mode=%d",
+                                                   ret, self.selectedScale, (int)self.selectedMode]
                                          userInfo:nil];
         }
+        if (!self.loggedFirstProcess) {
+            self.loggedFirstProcess = YES;
+            NSLog(@"[MagicMagnifierSR] MC_Process first ok version=%s ret=0 in=%zux%zu out=%zux%zu scale=%.3f mode=%d",
+                  MC_GetVersion(), cropW, cropH, outW, outH, self.selectedScale, (int)self.selectedMode);
+        }
 
-        id<MTLTexture> outTexture = (__bridge id<MTLTexture>)outPtr;
-        size_t outW = outTexture.width;
-        size_t outH = outTexture.height;
         size_t outputBytes = outW * outH * 4;
         if (!self.outputRgbaData || self.outputRgbaData.length != outputBytes) {
             self.outputRgbaData = [NSMutableData dataWithLength:outputBytes];
         }
-        [outTexture getBytes:self.outputRgbaData.mutableBytes
-                 bytesPerRow:outW * 4
-                  fromRegion:MTLRegionMake2D(0, 0, outW, outH)
-                 mipmapLevel:0];
+        /* Safe: spatial MC_Process returned after GPU waitUntilCompleted. */
+        [self.outputTexture getBytes:self.outputRgbaData.mutableBytes
+                          bytesPerRow:outW * 4
+                           fromRegion:MTLRegionMake2D(0, 0, outW, outH)
+                          mipmapLevel:0];
         UIImage *img = [self imageFromRgbaData:self.outputRgbaData width:outW height:outH];
         NSString *status = [NSString stringWithFormat:@"mode=%@ scale=x%@ crop=%zux%zu out=%zux%zu",
-                            self.selectedMode == BALANCED_MODE ? @"balanced" : @"speed",
+                            self.selectedMode == SPATIAL_BALANCED_MODE ? @"balanced" : @"speed",
                             [self formatScale:self.selectedScale],
                             cropW, cropH, outW, outH];
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -412,13 +453,91 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     self.processingFrame = NO;
 }
 
-- (void)prepareMetalEnableModelEnvironment {
+- (void)ensureSessionForWidth:(size_t)width height:(size_t)height scale:(float)scale mode:(alg_mode_e)mode {
+    if (self.srHandle &&
+        self.inputTexWidth == width &&
+        self.inputTexHeight == height &&
+        self.engineMode == mode &&
+        fabsf(self.engineScale - scale) < 0.0001f) {
+        return;
+    }
+
+    if (self.srHandle) {
+        int ur = MC_Uninit(self.srHandle);
+        if (ur != 0) {
+            NSLog(@"[MagicMagnifierSR] MC_Uninit failed ret=%d", ur);
+        }
+        self.srHandle = NULL;
+    }
+
     NSString *modelPath = [self modelPathForCurrentMode];
-    MC_Enable_SetModelPath(modelPath.UTF8String);
+    input_param_t param;
+    memset(&param, 0, sizeof(param));
+    param.struct_size = (uint32_t)sizeof(param);
+    param.input_type = INPUT_TEXTURE_RGB8Unorm;
+    param.width = (unsigned int)width;
+    param.height = (unsigned int)height;
+    param.scaler_factor = scale;
+    param.alg_mode = mode;
+    param.num_threads = 1;
+    param.log_level = MAGIC_LOG_INFO;
+    param.backend = MAGIC_BACKEND_METAL;
+    param.spatial_sharpen_level = 0;
+    param.gpu_context.device = (__bridge void *)self.device;
+    strncpy(param.model_path, modelPath.UTF8String, sizeof(param.model_path) - 1);
+
+    self.srHandle = MC_Init(&param);
+    if (!self.srHandle) {
+        @throw [NSException exceptionWithName:@"MCInitError"
+                                       reason:[NSString stringWithFormat:@"MC_Init failed scale=%.2f mode=%d model=%@",
+                                               scale, (int)mode, modelPath]
+                                     userInfo:nil];
+    }
+    output_status_params_t st;
+    memset(&st, 0, sizeof(st));
+    if (MC_Control(self.srHandle, QUERY_STATUS, NULL, &st) != 0) {
+        int ur = MC_Uninit(self.srHandle);
+        if (ur != 0) {
+            NSLog(@"[MagicMagnifierSR] MC_Uninit failed ret=%d after QUERY_STATUS", ur);
+        }
+        self.srHandle = NULL;
+        @throw [NSException exceptionWithName:@"MCInitError"
+                                       reason:@"QUERY_STATUS after MC_Init failed"
+                                     userInfo:nil];
+    }
+    if (st.width != (unsigned)width || st.height != (unsigned)height) {
+        int ur = MC_Uninit(self.srHandle);
+        if (ur != 0) {
+            NSLog(@"[MagicMagnifierSR] MC_Uninit failed ret=%d after size mismatch", ur);
+        }
+        self.srHandle = NULL;
+        @throw [NSException exceptionWithName:@"MCInitError"
+                                       reason:[NSString stringWithFormat:@"session input %ux%u != %zux%zu",
+                                               st.width, st.height, width, height]
+                                     userInfo:nil];
+    }
+    size_t coreOutW = st.output_width;
+    size_t coreOutH = st.output_height;
+    if (coreOutW != self.outputTexWidth || coreOutH != self.outputTexHeight) {
+        [self ensureOutputTextureForWidth:coreOutW height:coreOutH];
+    }
+    self.engineScale = scale;
+    self.engineMode = mode;
+    self.loggedFirstProcess = NO;
+    NSLog(@"[MagicMagnifierSR] MC_Init ok version=%s scale=%.3f mode=%d %zux%zu -> %ux%u model=%@",
+          MC_GetVersion(), scale, (int)mode, width, height, st.output_width, st.output_height, modelPath);
+}
+
+- (size_t)scaledDimension:(size_t)value scale:(float)scaler {
+    double scaled = (double)value * (double)scaler;
+    if (scaled < 1.0) return 1;
+    if (scaled > (double)UINT32_MAX) return (size_t)UINT32_MAX;
+    return (size_t)floor(scaled + 0.5);
 }
 
 - (size_t)evenSize:(long long)desired max:(size_t)max {
-    size_t v = (size_t)MAX(2LL, MIN(desired, (long long)max));
+    size_t v = (size_t)MAX(64LL, MIN(desired, (long long)max));
+    if (v > max) v = max;
     return v & ~(size_t)1;
 }
 
@@ -448,6 +567,23 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     }
     self.inputTexWidth = width;
     self.inputTexHeight = height;
+}
+
+- (void)ensureOutputTextureForWidth:(size_t)width height:(size_t)height {
+    if (self.outputTexture && self.outputTexWidth == width && self.outputTexHeight == height) {
+        return;
+    }
+    MTLTextureDescriptor *outDesc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
+                                                                                       width:width
+                                                                                      height:height
+                                                                                   mipmapped:NO];
+    outDesc.usage = MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite;
+    self.outputTexture = [self.device newTextureWithDescriptor:outDesc];
+    if (!self.outputTexture) {
+        @throw [NSException exceptionWithName:@"TextureCreateError" reason:@"failed to create output texture" userInfo:nil];
+    }
+    self.outputTexWidth = width;
+    self.outputTexHeight = height;
 }
 
 - (void)fillFullRgbaFromPixelBuffer:(CVPixelBufferRef)pb {
@@ -519,7 +655,7 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
 }
 
 - (void)ensureModelsInSandbox {
-    NSArray<NSString *> *names = @[@"magic_metal_highspeed_gpu_params.bin", @"magic_metal_speed_gpu_params.bin"];
+    NSArray<NSString *> *names = @[ @"magic_sr_gpu_params.bin" ];
     NSString *docs = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject;
     NSFileManager *fm = [NSFileManager defaultManager];
     for (NSString *name in names) {
@@ -527,7 +663,7 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
         NSString *src = [NSBundle.mainBundle pathForResource:[name stringByDeletingPathExtension]
                                                       ofType:name.pathExtension];
         if (!src) {
-            @throw [NSException exceptionWithName:@"ModelMissing" reason:[NSString stringWithFormat:@"missing bundle model: %@", name] userInfo:nil];
+            continue;
         }
         NSError *err = nil;
         if ([fm fileExistsAtPath:dst]) {
@@ -544,16 +680,24 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
 }
 
 - (NSString *)modelPathForCurrentMode {
-    NSString *name = self.selectedMode == BALANCED_MODE
-        ? @"magic_metal_speed_gpu_params.bin"
-        : @"magic_metal_highspeed_gpu_params.bin";
-    NSString *path = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject
-                      stringByAppendingPathComponent:name];
-    NSDictionary *attrs = [[NSFileManager defaultManager] attributesOfItemAtPath:path error:nil];
-    if (!attrs || attrs.fileSize <= 0) {
-        @throw [NSException exceptionWithName:@"ModelMissing" reason:[NSString stringWithFormat:@"model missing: %@", path] userInfo:nil];
+    /* Combined public GPU model: BALANCED=seg0, SPEED=seg(1+sharpen). */
+    NSArray<NSString *> *names = @[ @"magic_sr_gpu_params.bin" ];
+    NSString *docs = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject;
+    for (NSString *name in names) {
+        NSString *path = [docs stringByAppendingPathComponent:name];
+        NSDictionary *attrs = [[NSFileManager defaultManager] attributesOfItemAtPath:path error:nil];
+        if (attrs && attrs.fileSize > 0) {
+            return path;
+        }
+        NSString *bundle = [NSBundle.mainBundle pathForResource:[name stringByDeletingPathExtension]
+                                                       ofType:name.pathExtension];
+        if (bundle.length > 0) {
+            return bundle;
+        }
     }
-    return path;
+    @throw [NSException exceptionWithName:@"ModelMissing"
+                               reason:[NSString stringWithFormat:@"no Metal spatial model for mode=%d", (int)self.selectedMode]
+                             userInfo:nil];
 }
 
 - (void)restartEngine {
@@ -563,8 +707,15 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
 }
 
 - (void)restartEngineUnsafe {
-    MC_Disable(NULL);
+    if (self.srHandle) {
+        int ur = MC_Uninit(self.srHandle);
+        if (ur != 0) {
+            NSLog(@"[MagicMagnifierSR] MC_Uninit failed ret=%d", ur);
+        }
+        self.srHandle = NULL;
+    }
     self.inputTexture = nil;
+    self.outputTexture = nil;
     self.fullRgbaData = nil;
     self.cropRgbaData = nil;
     self.outputRgbaData = nil;
@@ -572,6 +723,11 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     self.fullFrameHeight = 0;
     self.inputTexWidth = 0;
     self.inputTexHeight = 0;
+    self.outputTexWidth = 0;
+    self.outputTexHeight = 0;
+    self.engineScale = -1.0f;
+    self.engineMode = (alg_mode_e)MAX_ALG_MODE;
+    self.loggedFirstProcess = NO;
 }
 
 - (void)failAndStop:(NSString *)message {

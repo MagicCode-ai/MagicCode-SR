@@ -21,14 +21,8 @@ if not exist "%GRADLEW%" (
 )
 
 call :require_file "%INTERFACE_DIR%\mc_interface.h"
-call :require_file "%INTERFACE_DIR%\mc_enable.h"
-call :require_file "%ANDROID_LIB_DIR%\libmagic_sr_enable.a"
-call :require_file "%IOS_LIB_DIR%\libmagic_sr_enable.a"
-
-call :require_file "%MODEL_DIR%\magic_gles_highspeed_gpu_params.bin"
-call :require_file "%MODEL_DIR%\magic_gles_speed_gpu_params.bin"
-call :require_file "%MODEL_DIR%\magic_metal_highspeed_gpu_params.bin"
-call :require_file "%MODEL_DIR%\magic_metal_speed_gpu_params.bin"
+call :require_file "%ANDROID_LIB_DIR%\libmagic_sr.a"
+call :require_file "%IOS_LIB_DIR%\libmagic_sr.a"
 
 if not exist "%ASSETS_MODEL_DIR%" (
   echo [INFO] Creating Android assets model directory...
@@ -39,17 +33,11 @@ if not exist "%ASSETS_MODEL_DIR%" (
   )
 )
 
-echo [INFO] Copying Android model files...
-copy /Y "%MODEL_DIR%\magic_gles_highspeed_gpu_params.bin" "%ASSETS_MODEL_DIR%\" >nul
-if errorlevel 1 (
-  echo [ERROR] Failed to copy magic_gles_highspeed_gpu_params.bin
-  exit /b 1
-)
-copy /Y "%MODEL_DIR%\magic_gles_speed_gpu_params.bin" "%ASSETS_MODEL_DIR%\" >nul
-if errorlevel 1 (
-  echo [ERROR] Failed to copy magic_gles_speed_gpu_params.bin
-  exit /b 1
-)
+echo [INFO] Copying Android GLES model files (if present)...
+if exist "%MODEL_DIR%\magic_gles_speed_gpu_params.bin" copy /Y "%MODEL_DIR%\magic_gles_speed_gpu_params.bin" "%ASSETS_MODEL_DIR%\" >nul
+if exist "%MODEL_DIR%\magic_gles_balanced_gpu_params.bin" copy /Y "%MODEL_DIR%\magic_gles_balanced_gpu_params.bin" "%ASSETS_MODEL_DIR%\" >nul
+if exist "%MODEL_DIR%\magic_gles_highspeed_gpu_params.bin" copy /Y "%MODEL_DIR%\magic_gles_highspeed_gpu_params.bin" "%ASSETS_MODEL_DIR%\" >nul
+if exist "%MODEL_DIR%\magic_sr_gpu_params.bin" copy /Y "%MODEL_DIR%\magic_sr_gpu_params.bin" "%ASSETS_MODEL_DIR%\" >nul
 
 echo [INFO] Building Android Debug APK...
 pushd "%ANDROID_DIR%"

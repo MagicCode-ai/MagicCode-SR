@@ -20,6 +20,15 @@ require_file() {
   fi
 }
 
+copy_if_exists() {
+  local src="$1"
+  local dst_dir="$2"
+  if [[ -f "${src}" ]]; then
+    cp -f "${src}" "${dst_dir}/"
+    echo "[INFO] Copied $(basename "${src}")"
+  fi
+}
+
 echo "[INFO] Demo root: ${ROOT}"
 
 if [[ ! -f "${GRADLEW}" ]]; then
@@ -28,21 +37,25 @@ if [[ ! -f "${GRADLEW}" ]]; then
 fi
 
 require_file "${INTERFACE_DIR}/mc_interface.h"
-require_file "${INTERFACE_DIR}/mc_enable.h"
-require_file "${ANDROID_LIB_DIR}/libmagic_sr_enable.a"
-require_file "${IOS_LIB_DIR}/libmagic_sr_enable.a"
-
-require_file "${MODEL_DIR}/magic_gles_highspeed_gpu_params.bin"
-require_file "${MODEL_DIR}/magic_gles_speed_gpu_params.bin"
-require_file "${MODEL_DIR}/magic_metal_highspeed_gpu_params.bin"
-require_file "${MODEL_DIR}/magic_metal_speed_gpu_params.bin"
+require_file "${ROOT}/android/app/src/main/cpp/mc_interface.h"
+require_file "${ROOT}/ios/MagicCameraSR/mc_interface.h"
+require_file "${ANDROID_LIB_DIR}/libmagic_sr.a"
+require_file "${IOS_LIB_DIR}/libmagic_sr.a"
+require_file "${REPO_ROOT}/lib/mac_arm/libmagic_sr.a"
 
 mkdir -p "${ASSETS_MODEL_DIR}"
 mkdir -p "${PACKAGES_DIR}"
 
-echo "[INFO] Copying Android model files..."
-cp -f "${MODEL_DIR}/magic_gles_highspeed_gpu_params.bin" "${ASSETS_MODEL_DIR}/"
-cp -f "${MODEL_DIR}/magic_gles_speed_gpu_params.bin" "${ASSETS_MODEL_DIR}/"
+echo "[INFO] Copying Android GLES model files (if present in ${MODEL_DIR})..."
+copy_if_exists "${MODEL_DIR}/magic_gles_speed_gpu_params.bin" "${ASSETS_MODEL_DIR}"
+copy_if_exists "${MODEL_DIR}/magic_gles_balanced_gpu_params.bin" "${ASSETS_MODEL_DIR}"
+copy_if_exists "${MODEL_DIR}/magic_gles_highspeed_gpu_params.bin" "${ASSETS_MODEL_DIR}"
+copy_if_exists "${MODEL_DIR}/magic_sr_gpu_params.bin" "${ASSETS_MODEL_DIR}"
+
+if ! ls "${ASSETS_MODEL_DIR}"/*.bin >/dev/null 2>&1; then
+  echo "[ERROR] No GLES/GPU model .bin in ${ASSETS_MODEL_DIR}. Place MagicSR v2 spatial models under ${MODEL_DIR}." >&2
+  exit 1
+fi
 
 echo "[INFO] Building Android Debug APK..."
 (
@@ -59,4 +72,5 @@ echo
 echo "[SUCCESS] Android build complete."
 echo "[SUCCESS] APK: ${APK_DST}"
 echo "[INFO] Install: adb install -r \"${APK_DST}\""
-echo "[INFO] iOS: open demo/ios/MagicCameraSR.xcodeproj, or see README for packaging notes."
+echo "[INFO] iOS: xcodebuild generic/platform=iOS (see README). Core lib is device arm64."
+echo "[INFO] mac_arm: arm64-only Session sample; no mac_x86 target."

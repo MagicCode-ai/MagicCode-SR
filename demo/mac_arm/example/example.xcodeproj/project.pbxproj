@@ -11,6 +11,7 @@
 		D44EA4EF2EDD8CE600722F6B /* example.c in Sources */ = {isa = PBXBuildFile; fileRef = D44EA4EE2EDD8CE600722F6B /* example.c */; };
 		A10000012EDD8CE600722F6B /* img_process.c in Sources */ = {isa = PBXBuildFile; fileRef = A10000002EDD8CE600722F6B /* img_process.c */; };
 		A10000032EDD8CE600722F6B /* metal.m in Sources */ = {isa = PBXBuildFile; fileRef = A10000022EDD8CE600722F6B /* metal.m */; };
+		A100000E2EDD8CE600722F6B /* metal_temporal_link_stubs.c in Sources */ = {isa = PBXBuildFile; fileRef = A100000D2EDD8CE600722F6B /* metal_temporal_link_stubs.c */; };
 		A10000052EDD8CE600722F6B /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A10000042EDD8CE600722F6B /* Metal.framework */; };
 		A10000072EDD8CE600722F6B /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A10000062EDD8CE600722F6B /* MetalKit.framework */; };
 		A10000092EDD8CE600722F6B /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A10000082EDD8CE600722F6B /* MetalPerformanceShaders.framework */; };
@@ -35,6 +36,7 @@
 		D44EA4EE2EDD8CE600722F6B /* example.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = example.c; path = ../example.c; sourceTree = SOURCE_ROOT; };
 		A10000002EDD8CE600722F6B /* img_process.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = img_process.c; path = ../img_process.c; sourceTree = SOURCE_ROOT; };
 		A10000022EDD8CE600722F6B /* metal.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = metal.m; path = ../metal.m; sourceTree = SOURCE_ROOT; };
+		A100000D2EDD8CE600722F6B /* metal_temporal_link_stubs.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = metal_temporal_link_stubs.c; path = ../metal_temporal_link_stubs.c; sourceTree = SOURCE_ROOT; };
 		A10000042EDD8CE600722F6B /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		A10000062EDD8CE600722F6B /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		A10000082EDD8CE600722F6B /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
@@ -63,6 +65,7 @@
 				D44EA4EE2EDD8CE600722F6B /* example.c */,
 				A10000002EDD8CE600722F6B /* img_process.c */,
 				A10000022EDD8CE600722F6B /* metal.m */,
+				A100000D2EDD8CE600722F6B /* metal_temporal_link_stubs.c */,
 				D44EA4F02EDD8E3700722F6B /* Frameworks */,
 				D44EA4E52EDD8CD000722F6B /* Products */,
 			);
@@ -151,6 +154,7 @@
 				D44EA4EF2EDD8CE600722F6B /* example.c in Sources */,
 				A10000012EDD8CE600722F6B /* img_process.c in Sources */,
 				A10000032EDD8CE600722F6B /* metal.m in Sources */,
+				A100000E2EDD8CE600722F6B /* metal_temporal_link_stubs.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -211,7 +215,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 15.7;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -267,7 +271,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 15.7;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
@@ -285,6 +289,12 @@
 					"$(SRCROOT)/../../../interface",
 				);
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../../lib/mac_arm";
+				ARCHS = arm64;
+				ONLY_ACTIVE_ARCH = NO;
+				EXCLUDED_ARCHS = x86_64;
+				OTHER_LDFLAGS = (
+					"-lc++",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SYMROOT = "${SRCROOT}/build";
 			};
@@ -301,6 +311,12 @@
 					"$(SRCROOT)/../../../interface",
 				);
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../../lib/mac_arm";
+				ARCHS = arm64;
+				ONLY_ACTIVE_ARCH = NO;
+				EXCLUDED_ARCHS = x86_64;
+				OTHER_LDFLAGS = (
+					"-lc++",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SYMROOT = "${SRCROOT}/build";
 			};

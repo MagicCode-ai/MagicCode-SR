@@ -77,6 +77,7 @@ public class MainActivity extends AppCompatActivity {
     private ProcessCameraProvider cameraProvider;
     private volatile boolean running;
     private long srHandle;
+    private boolean engineDirty = true;
     private int selectedMode = MODE_SPEED;
     private volatile float selectedScale = 2.0f;
     private int engineInitWidth = -1;
@@ -125,6 +126,7 @@ public class MainActivity extends AppCompatActivity {
         synchronized (engineLock) {
             SuperResolutionLib.uninitSuperResolution();
             srHandle = 0;
+            engineDirty = true;
             engineInitWidth = -1;
             engineInitHeight = -1;
             engineInitScale = -1.0f;
@@ -425,8 +427,9 @@ public class MainActivity extends AppCompatActivity {
             int cropH = evenSize(Math.round(inH / scale), inH);
             int cropX = (inW - cropW) / 2;
             int cropY = (inH - cropH) / 2;
-            int outW = Math.max(1, Math.round(cropW * scale));
-            int outH = Math.max(1, Math.round(cropH * scale));
+            /* Core output size: floor(value * scale + 0.5) in double (magic_backend.h). */
+            int outW = scaledDimension(cropW, scale);
+            int outH = scaledDimension(cropH, scale);
             ensureBuffers(inW, inH, cropW, cropH, outW, outH);
             yuv420ToRgba(image, rgbaFull);
             cropRgba(rgbaFull, inW, inH, cropX, cropY, cropW, cropH, rgbaCrop);
@@ -438,7 +441,7 @@ public class MainActivity extends AppCompatActivity {
             }
             if (ret != 0) {
                 // Transient failures (e.g. mid-scale rebuild) should not kill the camera.
-                Log.w(TAG, "MC_Enable failed ret=" + ret + " crop=" + cropW + "x" + cropH
+                Log.w(TAG, "MC_Process failed ret=" + ret + " crop=" + cropW + "x" + cropH
                         + " scale=" + scale + " — skip frame");
                 return;
             }
@@ -475,9 +478,21 @@ public class MainActivity extends AppCompatActivity {
         if (rgbaOutput == null || rgbaOutput.length != outBytes) rgbaOutput = new byte[outBytes];
     }
 
-    /** Prefer even sizes for GLES textures; never exceed source size. */
+    /**
+     * Same as product {@code scaled_dimension} in {@code src/magic_backend.h}:
+     * {@code floor((double)value * (double)scaler + 0.5)}, clamped to [1, UINT32_MAX].
+     */
+    static int scaledDimension(int value, float scaler) {
+        double scaled = (double) value * (double) scaler;
+        if (scaled < 1.0) return 1;
+        if (scaled > (double) 0xFFFFFFFFL) return Integer.MAX_VALUE;
+        return (int) Math.floor(scaled + 0.5d);
+    }
+
+    /** Prefer even sizes for GLES textures; never exceed source size. Spatial SR needs >= 64. */
     private static int evenSize(int desired, int max) {
-        int v = Math.max(2, Math.min(desired, max));
+        int v = Math.max(64, Math.min(desired, max));
+        if (v > max) v = max;
         return v & ~1;
     }
 
@@ -494,7 +509,8 @@ public class MainActivity extends AppCompatActivity {
     /** Caller must hold engineLock. */
     private void ensureEngineLocked(int width, int height, float scale, int mode) {
         String modelPath = modelPathForCurrentMode();
-        boolean stale = srHandle == 0
+        boolean stale = engineDirty
+                || srHandle == 0
                 || engineInitWidth != width
                 || engineInitHeight != height
                 || engineInitMode != mode
@@ -502,6 +518,7 @@ public class MainActivity extends AppCompatActivity {
                 || !modelPath.equals(currentModelPath);
         if (!stale) return;
         SuperResolutionLib.uninitSuperResolution();
+        srHandle = 0;
         srHandle = SuperResolutionLib.initSuperResolution(
                 width,
                 height,
@@ -516,20 +533,23 @@ public class MainActivity extends AppCompatActivity {
             engineInitScale = -1.0f;
             engineInitMode = -1;
             currentModelPath = "";
-            throw new IllegalStateException("MC_Enable setup failed, model=" + modelPath);
+            engineDirty = true;
+            throw new IllegalStateException("MC_Init failed, model=" + modelPath);
         }
         engineInitWidth = width;
         engineInitHeight = height;
         engineInitScale = scale;
         engineInitMode = mode;
         currentModelPath = modelPath;
+        engineDirty = false;
     }
 
     private void restartEngine() {
-        // Mark dirty only; actual rebuild happens on the camera thread under engineLock.
-        // Avoid calling MC_Disable from the UI thread while a frame may be in MC_Enable.
+        // Mark dirty only. Native handle stays live until the next camera-thread
+        // ensureEngineLocked() or onDestroy() — never Uninit from the UI thread
+        // while a frame may be inside MC_Process.
         synchronized (engineLock) {
-            srHandle = 0;
+            engineDirty = true;
             engineInitWidth = -1;
             engineInitHeight = -1;
             engineInitScale = -1.0f;
@@ -543,8 +563,8 @@ public class MainActivity extends AppCompatActivity {
         if (!modelDir.exists() && !modelDir.mkdirs()) {
             throw new RuntimeException("cannot create model dir: " + modelDir.getAbsolutePath());
         }
-        copyModelIfMissing(modelDir, "magic_gles_highspeed_gpu_params.bin");
-        copyModelIfMissing(modelDir, "magic_gles_speed_gpu_params.bin");
+        // Combined public GPU model: BALANCED=seg0, SPEED=seg(1+sharpen).
+        copyModelIfMissing(modelDir, "magic_sr_gpu_params.bin");
     }
 
     private void copyModelIfMissing(File modelDir, String fileName) {
@@ -559,22 +579,28 @@ public class MainActivity extends AppCompatActivity {
             }
             os.flush();
         } catch (Exception e) {
-            throw new RuntimeException("copy model failed: " + fileName + " err=" + e.getMessage(), e);
-        }
-        if (!out.exists() || out.length() <= 0) {
-            throw new RuntimeException("model invalid after copy: " + out.getAbsolutePath());
+            Log.w(TAG, "optional model not in assets: " + fileName + " err=" + e.getMessage());
+            if (out.exists() && out.length() <= 0) {
+                //noinspection ResultOfMethodCallIgnored
+                out.delete();
+            }
         }
     }
 
     private String modelPathForCurrentMode() {
-        String name = selectedMode == MODE_BALANCED
-                ? "magic_gles_speed_gpu_params.bin"
-                : "magic_gles_highspeed_gpu_params.bin";
-        File model = new File(new File(getFilesDir(), "models"), name);
-        if (!model.exists() || model.length() <= 0) {
-            throw new IllegalStateException("model missing: " + model.getAbsolutePath());
+        // Both spatial modes load the same combined magic_sr_gpu_params.bin.
+        String[] names = new String[] { "magic_sr_gpu_params.bin" };
+        File modelDir = new File(getFilesDir(), "models");
+        StringBuilder tried = new StringBuilder();
+        for (String name : names) {
+            File model = new File(modelDir, name);
+            if (tried.length() > 0) tried.append(", ");
+            tried.append(model.getAbsolutePath());
+            if (model.exists() && model.length() > 0) {
+                return model.getAbsolutePath();
+            }
         }
-        return model.getAbsolutePath();
+        throw new IllegalStateException("model missing; tried: " + tried);
     }
 
     private String modeName() {
@@ -602,6 +628,7 @@ public class MainActivity extends AppCompatActivity {
         synchronized (engineLock) {
             SuperResolutionLib.uninitSuperResolution();
             srHandle = 0;
+            engineDirty = true;
             engineInitWidth = -1;
             engineInitHeight = -1;
             engineInitScale = -1.0f;

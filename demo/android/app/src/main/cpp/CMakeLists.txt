@@ -7,8 +7,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-stack-protector -U_FORTIFY_SOURCE")
 set(LOCAL_JNI_DIR ${CMAKE_SOURCE_DIR})
 # cpp → main → src → app → android → demo → repo-root/lib/android
 set(MAGIC_LIB_DIR "${CMAKE_SOURCE_DIR}/../../../../../../lib/android")
-set(MAGIC_LIB_PATH "${MAGIC_LIB_DIR}/libmagic_sr_enable.a")
+set(MAGIC_LIB_PATH "${MAGIC_LIB_DIR}/libmagic_sr.a")
 set(MAGIC_INTERFACE_DIR "${CMAKE_SOURCE_DIR}/../../../../../../interface")
+if(NOT EXISTS "${MAGIC_LIB_PATH}")
+    message(FATAL_ERROR "Missing core library: ${MAGIC_LIB_PATH}")
+endif()
 
 add_library(superresolution SHARED
     ${LOCAL_JNI_DIR}/native-lib.cpp

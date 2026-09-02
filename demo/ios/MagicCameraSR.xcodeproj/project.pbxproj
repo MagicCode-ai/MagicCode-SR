@@ -174,11 +174,17 @@
 				CLANG_ENABLE_OBJC_ARC = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../interface";
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/MagicCameraSR",
+					"$(SRCROOT)/../../interface",
+				);
 				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				ARCHS = arm64;
+				EXCLUDED_ARCHS = "i386 x86_64 armv7";
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../lib/ios";
 				OTHER_LDFLAGS = (
-					"-lmagic_sr_enable",
+					"-lmagic_sr",
+					"-lc++",
 					"-framework",
 					AVFoundation,
 					"-framework",
@@ -187,8 +193,6 @@
 					ImageIO,
 					"-framework",
 					Metal,
-					"-framework",
-					MetalFX,
 					"-framework",
 					QuartzCore,
 				);
@@ -207,11 +211,17 @@
 				CLANG_ENABLE_OBJC_ARC = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../interface";
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/MagicCameraSR",
+					"$(SRCROOT)/../../interface",
+				);
 				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				ARCHS = arm64;
+				EXCLUDED_ARCHS = "i386 x86_64 armv7";
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../lib/ios";
 				OTHER_LDFLAGS = (
-					"-lmagic_sr_enable",
+					"-lmagic_sr",
+					"-lc++",
 					"-framework",
 					AVFoundation,
 					"-framework",
@@ -220,8 +230,6 @@
 					ImageIO,
 					"-framework",
 					Metal,
-					"-framework",
-					MetalFX,
 					"-framework",
 					QuartzCore,
 				);
