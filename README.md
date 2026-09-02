@@ -12,79 +12,87 @@ Official page: [https://www.magiccode-ai.com/products/video-super-resolution](ht
 
 ## MagicSR Performance
 
-To evaluate MagicSR, we compared it with benchmark mobile SR solutions including Apple MetalFX and Qualcomm SGSR (2x super-resolution).
+To evaluate MagicSR, we compared it with two benchmark super-resolution algorithms on mobile devices: Apple Metal4 MetalFX and Qualcomm Snapdragon SGSR (2x super-resolution). The results show:
 
-### iOS / iPadOS
+### 2x Spatial Super-Resolution Processing Speed Test
 
-- Image quality: `MagicSR-Balanced > MagicSR-Speed > MetalFX-Spatial`
-- Processing speed: `MagicSR-Speed > MagicSR-Balanced > MetalFX-Spatial`
+#### iOS Super-Resolution Speed Comparison
 
-### Android
-
-- Image quality: `MagicSR-Balanced > MagicSR-Speed > SGSR1.0`
-- Processing speed: `MagicSR-Speed > SGSR1.0 > MagicSR-Balanced`
-
-## 2x Super-Resolution Speed Data
-
-### iOS Super-Resolution Speed Comparison (A16 Pro, ms)
+Test platform: A16Pro CPU. Metric: processing time in ms.
 
 | Method | Time (ms) |
 | --- | ---: |
-| MagicSR Speed | 3.12 |
-| MagicSR Balanced | 8.51 |
-| MetalFX Spatial | 8.82 |
+| Bilinear | 2.38 |
+| MagicSR Spatial Speed | 3.12 |
+| MagicSR Spatial Balanced | 8.51 |
+| MetalFX-Spatial | 8.82 |
 
-### Android Vulkan Super-Resolution Speed Comparison (Snapdragon 888, ms)
+#### Android Vulkan Super-Resolution Speed Comparison
+
+Test platform: Qualcomm Snapdragon 888 CPU. Metric: processing time in ms.
 
 | Method | Time (ms) |
 | --- | ---: |
-| MagicSR Speed | 3.93 |
+| Bilinear | 2.918 |
+| MagicSR Spatial Speed | 3.93 |
 | SGSR1.0 | 4.678 |
-| MagicSR Balanced | 17.82 |
+| MagicSR Spatial Balanced | 17.82 |
 
-## MagicSR Speed vs Apple MetalFx
+### MagicSR Balanced vs Apple MetalFx
 
-Side-by-side real-time 2× super-resolution in a 3D game on **iPhone 14 Pro**. Both pipelines render at **1920×1080** and upscale to **3840×2160**.
-
-| Left — MagicSR Speed 2× | Right — MetalFX 2× |
-| --- | --- |
-| ~59.7 FPS, ~4.3 ms SR | ~36.6 FPS, ~14.6 ms SR |
+In a 3D game running on iPhone 14 Pro, MagicSR maintains a stable 60 fps, while MetalFx averages only 36.6 fps.
 
 <a href="https://github.com/MagicCode-ai/SuperResolution/raw/main/README.assets/compare_magic_speed_vs_metalfx_2x_latest.mp4">
-  <img src="README.assets/compare_magic_speed_vs_metalfx_2x_preview.gif" width="880" alt="MagicSR Speed vs Apple MetalFx — side-by-side 2x super-resolution demo">
+  <img src="README.assets/compare_magic_speed_vs_metalfx_2x_preview.gif" width="880" alt="MagicSR Balanced vs Apple MetalFx">
 </a>
 
 [**▶ Watch full video (MP4)**](https://github.com/MagicCode-ai/SuperResolution/raw/main/README.assets/compare_magic_speed_vs_metalfx_2x_latest.mp4)
 
-## 2x Super-Resolution Image Quality Comparison
+### 2x Spatial Super-Resolution Image Quality Comparison
 
-The image quality comparison shows outputs from SGSR1.0, MagicSR Speed, MetalFX-Spatial, and MagicSR Balanced. It can be used to examine edge clarity, fine textures, artifacts, noise amplification, and overall naturalness.
+The image quality comparison shows outputs from Bilinear, SGSR1.0, MagicSR Speed, and MetalFX-Spatial. It can be used to examine edge clarity, fine textures, artifacts, noise amplification, and overall naturalness.
 
-### Comparison 1
+#### Spatial SR Comparison
 
-| SGSR1.0 | MagicSR Speed |
+| Bilinear | MagicSR Speed |
 | :---: | :---: |
-| <img src="README.assets/sgsr2.0-1.jpg" width="880" alt="SGSR1.0 Comparison 1" /> | <img src="README.assets/quality-1-highspeed.jpg" width="880" alt="MagicSR Speed Comparison 1" /> |
-| **MetalFX-Spatial** | **MagicSR Balanced** |
-| <img src="README.assets/metalfx-tsr-1.jpg" width="880" alt="MetalFX-Spatial Comparison 1" /> | <img src="README.assets/quality-1-speed.jpg" width="880" alt="MagicSR Balanced Comparison 1" /> |
+| <img src="README.assets/bilinear.jpg" width="880" alt="Bilinear Spatial SR Comparison" /> | <img src="README.assets/quality-1-highspeed.jpg" width="880" alt="MagicSR Speed Spatial SR Comparison" /> |
+| **SGSR1.0** | **MetalFX-Spatial** |
+| <img src="README.assets/quality-1-sgsr.jpg" width="880" alt="SGSR1.0 Spatial SR Comparison" /> | <img src="README.assets/quality-1-metalfx.jpg" width="880" alt="MetalFX-Spatial Spatial SR Comparison" /> |
 
-### Comparison 2
+### 2x Temporal Super-Resolution Processing Speed Test
 
-| SGSR1.0 | MagicSR Speed |
-| :---: | :---: |
-| <img src="README.assets/sgsr2.0-2.jpg" width="880" alt="SGSR1.0 Comparison 2" /> | <img src="README.assets/quality-2-highspeed.jpg" width="880" alt="MagicSR Speed Comparison 2" /> |
-| **MetalFX-Spatial** | **MagicSR Balanced** |
-| <img src="README.assets/metalfx-tsr-2.jpg" width="880" alt="MetalFX-Spatial Comparison 2" /> | <img src="README.assets/quality-2-speed.jpg" width="880" alt="MagicSR Balanced Comparison 2" /> |
+#### iOS Super-Resolution Speed Comparison
 
-### Comparison 3
+Test platform: A16Pro CPU. Metric: processing time in ms.
 
-| SGSR1.0 | MagicSR Speed |
-| :---: | :---: |
-| <img src="README.assets/SGSR-3.jpg" width="880" alt="SGSR1.0 Comparison 3" /> | <img src="README.assets/MagicSR-Speed-3.jpg" width="880" alt="MagicSR Speed Comparison 3" /> |
-| **MetalFX-Spatial** | **MagicSR Balanced** |
-| <img src="README.assets/MetalFx-3.jpg" width="880" alt="MetalFX-Spatial Comparison 3" /> | <img src="README.assets/MagicSR-Balanced-3.jpg" width="880" alt="MagicSR Balanced Comparison 3" /> |
+| Method | Time (ms) |
+| --- | ---: |
+| MagicSR Temporal Speed | 17.18 |
+| MetalFX | 17.73 |
+| MagicSR Temporal Balanced | 23.88 |
 
-## Game Demo: Original Res vs Low Res+MagicSR
+#### Android Vulkan Super-Resolution Speed Comparison
+
+Test platform: Qualcomm Snapdragon 888 CPU. Metric: processing time in ms.
+
+| Method | Time (ms) |
+| --- | ---: |
+| SGSR2.0 | 22.231 |
+| MagicSR Temporal Speed | 22.648 |
+| MagicSR Temporal Balanced | 28.901 |
+
+### 2x Temporal Super-Resolution Image Quality Comparison
+
+<p align="center"><strong>MagicSR (left) vs MetalFX (right)</strong></p>
+
+<img src="README.assets/MagicSR_LEFT_vs_MetalFX_RIGHT.gif" width="880" alt="MagicSR (left) vs MetalFX (right)">
+
+<p align="center"><strong>MagicSR (left) vs Official SGSR2.0 (right)</strong></p>
+
+<img src="README.assets/Magic_LEFT_vs_OfficialSGSR2_RIGHT.gif" width="880" alt="MagicSR (left) vs Official SGSR2.0 (right)">
+
+### Game Demo: Original Res vs Low Res+MagicSR
 
 In-game clip with on-screen HUD comparing the original stream against MagicSR.
 
@@ -94,7 +102,9 @@ In-game clip with on-screen HUD comparing the original stream against MagicSR.
 
 [**▶ Watch full video (MP4)**](https://github.com/MagicCode-ai/SuperResolution/raw/main/README.assets/game_16-26s_vs_magicsr_clip_hud.mp4)
 
-## Productization Support
+### Productization Support
+
+In addition to its advantages in processing speed and image quality, MagicSR is product-ready: it supports mainstream mobile backends such as Metal, Vulkan, and OpenGLES, and provides Unity and UE plugins.
 
 MagicSR supports mainstream CPU and GPU backends:
 
