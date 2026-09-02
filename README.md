@@ -116,11 +116,6 @@ MagicSR supports mainstream CPU and GPU backends:
 - OpenGLES
 - OpenGL
 
-And provides integration support for:
-
-- Unity plugin (supports Unity 2022.3.62f2c1)
-- Unreal Engine plugin (supports UE 5.0, 5.1, 5.2, 5.3, 5.4, 5.6, 5.7, 5.8)
-
 ## Quick Start
 
 Quick integration via the Enable API: include the header, set the model directory, enable with an input texture and scale, then disable when finished.
