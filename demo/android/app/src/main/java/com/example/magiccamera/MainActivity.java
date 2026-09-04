@@ -7,6 +7,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -85,6 +86,7 @@ public class MainActivity extends AppCompatActivity {
     private float engineInitScale = -1.0f;
     private int engineInitMode = -1;
     private String currentModelPath = "";
+    private String sdkVersion = "v2.1.0";
     private byte[] rgbaFull;
     private byte[] rgbaCrop;
     private byte[] rgbaOutput;
@@ -146,6 +148,10 @@ public class MainActivity extends AppCompatActivity {
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT));
 
+        try {
+            sdkVersion = SuperResolutionLib.getVersion();
+        } catch (Throwable ignored) {}
+
         LinearLayout controls = new LinearLayout(this);
         controls.setOrientation(LinearLayout.VERTICAL);
         controls.setPadding(20, 16, 20, 16);
@@ -161,6 +167,17 @@ public class MainActivity extends AppCompatActivity {
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         balancedParams.leftMargin = 12;
         modeRow.addView(modeBalancedBtn, balancedParams);
+
+        TextView versionText = new TextView(this);
+        versionText.setText("MagicSR " + sdkVersion);
+        versionText.setTextColor(0xddffffff);
+        versionText.setTextSize(14f);
+        versionText.setTypeface(null, Typeface.BOLD);
+        versionText.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams versionParams = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
+        versionParams.rightMargin = 4;
+        modeRow.addView(versionText, versionParams);
         controls.addView(modeRow);
 
         scaleTouchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
@@ -405,7 +422,7 @@ public class MainActivity extends AppCompatActivity {
         analysis.setAnalyzer(cameraExecutor, this::analyzeFrame);
         cameraProvider.unbindAll();
         cameraProvider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, analysis);
-        statusText.setText("camera ready");
+        statusText.setText("camera ready (" + sdkVersion + ")");
     }
 
     private void analyzeFrame(@NonNull ImageProxy image) {
@@ -441,7 +458,7 @@ public class MainActivity extends AppCompatActivity {
             }
             if (ret != 0) {
                 // Transient failures (e.g. mid-scale rebuild) should not kill the camera.
-                Log.w(TAG, "MC_Process failed ret=" + ret + " crop=" + cropW + "x" + cropH
+                Log.w(TAG, "MC_Enable failed ret=" + ret + " crop=" + cropW + "x" + cropH
                         + " scale=" + scale + " — skip frame");
                 return;
             }
@@ -451,8 +468,8 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 if (!running) return;
                 outputView.setImageBitmap(bitmap);
-                statusText.setText("mode=" + modeName() + " scale=x" + formatScale(scale)
-                        + " crop=" + cropW + "x" + cropH
+                statusText.setText("ver=" + sdkVersion + " mode=" + modeName() + " scale=x" + formatScale(scale)
+                        + "\ncrop=" + cropW + "x" + cropH
                         + " out=" + displayW + "x" + displayH
                         + " rot=" + rotationDegrees);
             });
@@ -534,7 +551,7 @@ public class MainActivity extends AppCompatActivity {
             engineInitMode = -1;
             currentModelPath = "";
             engineDirty = true;
-            throw new IllegalStateException("MC_Init failed, model=" + modelPath);
+            throw new IllegalStateException("MC_Enable init failed, model=" + modelPath);
         }
         engineInitWidth = width;
         engineInitHeight = height;
@@ -547,7 +564,7 @@ public class MainActivity extends AppCompatActivity {
     private void restartEngine() {
         // Mark dirty only. Native handle stays live until the next camera-thread
         // ensureEngineLocked() or onDestroy() — never Uninit from the UI thread
-        // while a frame may be inside MC_Process.
+        // while a frame may be inside MC_Enable.
         synchronized (engineLock) {
             engineDirty = true;
             engineInitWidth = -1;

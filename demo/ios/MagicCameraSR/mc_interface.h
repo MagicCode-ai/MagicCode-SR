@@ -33,16 +33,6 @@
 extern "C" {
 #endif
 
-/**
- * @brief Command parameter enumeration for algorithm control
- * @details Defines the command types for setting parameters and querying status
- */
-typedef enum cmd_params_e {
-    SET_PARAM = 0,    // Set algorithm configuration parameters
-    QUERY_STATUS,     // Query current algorithm running status and parameters
-    MAX_CMD_NUMS      // Maximum number of command types (boundary marker)
-} cmd_params_e;
-
 typedef enum input_type_e {
     INPUT_BUFFER = 0,            /* legacy CPU R8 buffer */
     INPUT_BUFFER_R8 = 0,         /* CPU R8 (alias of INPUT_BUFFER) */
@@ -77,7 +67,7 @@ typedef enum alg_mode_e {
  * transparency all use this type.
  *
  * handle is a union: exactly one member is live at a time. Which member is
- * interpreted is fixed by the MC_Init backend (and that backend's process
+ * interpreted is fixed by the init backend (and that backend's process
  * path) — never by inspecting unused bytes. Zero-initialize the resource so
  * unused union bytes are 0, then write the live member:
  *   CPU / Metal / D3D11 → handle.pointer
@@ -86,7 +76,7 @@ typedef enum alg_mode_e {
  * Do not store a GPU object and CPU float pixels in the same union. Resource
  * ownership stays with the caller; the library does not retain or free it.
  *
- * This struct has no width/height. After MC_Init / MC_Control, color/depth/
+ * This struct has no width/height. After handle initialization, color/depth/
  * motion/reactive/transparency are expected to match the handle input size
  * and image_out the computed output size. Matching those sizes is a caller
  * contract: the library validates handle/format/layout/semantic metadata
@@ -138,20 +128,20 @@ typedef enum log_level_e {
 
 /*
  * Per-frame MV jitter is mc_mv_jitter_e on temporal_frame_t. There is no
- * public flags bitmask. Reversed-Z, infinite far, and HDR are MC_Init
+ * public flags bitmask. Reversed-Z, infinite far, and HDR are init
  * create-stage fields on input_param_t. Depth is always GPU device depth
  * in [0, 1]. Sharpening is enable_sharpening plus sharpness. Internal
  * debug / A-B bits are not part of this header.
  */
 
 /*
- * Stable GPU import state for MC_Init. Copied by value into the handle and
- * immutable for the handle lifetime (MC_Control SET_PARAM does not change it).
+ * Stable GPU import state for input_param_t. Copied by value into the handle and
+ * immutable for the handle lifetime.
  * All-zero = library-owned / default / current-context behavior.
  *
  * Vulkan temporal has no library-owned VkDevice: physical_device + device
  * are required; get_device_proc_addr may be NULL (private dispatch loads
- * vulkan-1.dll). This struct is a frozen 5-pointer ABI (dfb0f796): do not
+ * vulkan-1.dll). This struct is a frozen 5-pointer ABI: do not
  * append fields. Vulkan reuses the otherwise-unused D3D11/GL slots:
  *   native_context  = VkInstance (optional; needed for instance-level
  *                     queries on a host loader such as volk / Streamline)
@@ -160,7 +150,7 @@ typedef enum log_level_e {
  * D3D11 temporal: device required; device_context may be NULL (immediate).
  * Metal: device may be NULL (MTLCreateSystemDefaultDevice).
  * GL / GLES: native_context is optional identity; the library never makes a
- * context current. First MC_Process still needs a current GL context.
+ * context current. First MC_Enable still needs a current GL context.
  * Spatial GPU: imported device is used where the backend already supports
  * zero-copy import (Metal). Vulkan/D3D11/GL spatial keep internally owned
  * or current-context devices when this struct is all-zero.
@@ -203,9 +193,9 @@ typedef enum mc_mv_jitter_e {
  *          0 < camera_near < camera_far. Infinite far requires
  *          camera_near > 0 (camera_far == 0 is allowed).
  *
- *          Set on input_param_t at MC_Init. 0 (unspecified) is the
+ *          Set on input_param_t. 0 (unspecified) is the
  *          handle canonical default: conventional-Z. Immutable for the
- *          handle lifetime (MC_Control resize does not change it).
+ *          handle lifetime.
  */
 typedef enum mc_depth_reversed_e {
     MC_DEPTH_REVERSED_UNSPECIFIED = 0,
@@ -217,9 +207,9 @@ typedef enum mc_depth_reversed_e {
  * @brief Finite vs infinite far plane.
  * @details Infinite far requires camera_near > 0; camera_far == 0 is
  *          allowed. Finite still requires 0 < camera_near < camera_far.
- *          Set on input_param_t at MC_Init. 0 (unspecified) is the
+ *          Set on input_param_t. 0 (unspecified) is the
  *          handle canonical default: finite far. Immutable for the
- *          handle lifetime (MC_Control resize does not change it).
+ *          handle lifetime.
  */
 typedef enum mc_depth_infinite_e {
     MC_DEPTH_INFINITE_UNSPECIFIED = 0,
@@ -245,7 +235,7 @@ typedef enum mc_hdr_color_e {
  * @details Flattened per-frame extras then auxiliary resources. Color and
  *          output live on magic_frame_t (image_in / image_out). Stable GPU
  *          device state lives on input_param_t.gpu_context (copied at
- *          MC_Init). Per-frame command_buffer lives on magic_frame_t.
+ *          init). Per-frame command_buffer lives on magic_frame_t.
  *          Depth/motion/reactive/transparency use the handle's input
  *          width/height. The caller owns all handles.
  *
@@ -254,12 +244,11 @@ typedef enum mc_hdr_color_e {
  *          them (see MC_TEMPORAL_FRAME_HAS_FIELD). Never read tail fields
  *          from a smaller prefix. 0 in a tail enum means "unspecified":
  *          mv_jitter 0 is excluded. Reversed-Z, infinite far, and HDR come
- *          from input_param_t at MC_Init, not from this struct. Default
+ *          from input_param_t, not from this struct. Default
  *          motion_vector_scale (0,0) is the handle's current input size
- *          and follows MC_Control resize. Per-frame explicit scale
- *          overrides. MC_Init does not write a caller temporal_frame_t.
+ *          and follows resize. Per-frame explicit scale overrides.
  *
- *          Minimum per-frame usage after MC_Init:
+ *          Minimum per-frame usage:
  *            temporal_frame_t tf = {0};
  *            tf.struct_size = sizeof(tf);
  *            // bind depth/motion (and color/output on magic_frame_t)
@@ -294,7 +283,7 @@ typedef enum mc_hdr_color_e {
  *              storage to +Y-down). Pixel MVs use (1,1). UV MVs typically
  *              use (W,H).
  *
- *          Descriptor validation (internal, every MC_Process temporal
+ *          Descriptor validation (internal, every MC_Enable temporal
  *          frame) checks native handles, format/layout when provided,
  *          and semantic metadata. It does not query GPU image sizes.
  *          Optional exposure_texture is caller-owned 1x1 R32F; 1x1 is a
@@ -383,8 +372,6 @@ typedef struct input_param_t {
     unsigned int height;           // Height of the input image (pixel units), valid range: [64, 4032]
     float scaler_factor;           // Requested super-resolution scaling factor. Spatial: [1, 8]. Temporal: (1, 8]. x86/neon accept implemented integer scales only.
     alg_mode_e alg_mode;         // 0 = SPATIAL_SPEED_MODE, 1 = SPATIAL_BALANCED_MODE, 2 = TEMPORAL_SPEED_MODE, 3 = TEMPORAL_BALANCED_MODE.
-    unsigned int num_threads;      // Number of CPU threads for parallel computation, valid range: [1, 8]
-                                   // Note: Multi-threading takes effect only when the image height >= 256 lines
     log_level_e log_level;
     magic_backend_e backend;       // Runtime backend selector: x86/neon/metal/opengl/opengles/vulkan.
     unsigned int spatial_sharpen_level; // Spatial sharpen grade [0, 5]. 0 = off, 5 = strongest.
@@ -393,10 +380,10 @@ typedef struct input_param_t {
     magic_device_context_t gpu_context; /* all-zero = library-owned/default */
     /*
      * Create-stage temporal depth / HDR. Ignored for spatial modes.
-     * Immutable for the handle lifetime: MC_Control SET_PARAM resize does
-     * not change these. Leave all three as 0 for the canonical defaults:
-     * conventional-Z, finite far, LDR color. Depth is always GPU device
-     * depth in [0,1]; linear-view depth is not a selectable encoding.
+     * Immutable for the handle lifetime. Leave all three as 0 for the
+     * canonical defaults: conventional-Z, finite far, LDR color. Depth
+     * is always GPU device depth in [0,1]; linear-view depth is not a
+     * selectable encoding.
      *
      * depth_reversed:
      *   MC_DEPTH_REVERSED_CONVENTIONAL means 0=near and 1=far.
@@ -424,44 +411,6 @@ typedef struct input_param_t {
                                    : (param)->struct_size) >= \
      (uint32_t)(offsetof(input_param_t, field) + sizeof((param)->field)))
 
-/*
- * Frozen public ABI (dfb0f796). sizeof(magic_device_context_t) is 5
- * pointers; depth/HDR sit immediately after gpu_context. struct_size==0
- * callers are interpreted with this layout — never grow the nested
- * context or insert fields before depth_reversed.
- */
-#if defined(__cplusplus)
-#define MAGIC_SR_ABI_STATIC_ASSERT(cond, msg) static_assert(cond, msg)
-#elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)
-#define MAGIC_SR_ABI_STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
-#elif defined(_MSC_VER)
-#define MAGIC_SR_ABI_STATIC_ASSERT(cond, msg) static_assert(cond, msg)
-#else
-#define MAGIC_SR_ABI_STATIC_ASSERT(cond, msg)
-#endif
-MAGIC_SR_ABI_STATIC_ASSERT(sizeof(magic_device_context_t) == 5u * sizeof(void *),
-    "magic_device_context_t must stay 5 pointers (dfb0f796)");
-#if defined(_WIN64)
-MAGIC_SR_ABI_STATIC_ASSERT(offsetof(input_param_t, gpu_context) == 296,
-    "input_param_t.gpu_context offset (dfb0f796 x64)");
-MAGIC_SR_ABI_STATIC_ASSERT(offsetof(input_param_t, depth_reversed) == 336,
-    "input_param_t.depth_reversed offset (dfb0f796 x64)");
-MAGIC_SR_ABI_STATIC_ASSERT(offsetof(input_param_t, depth_infinite) == 340,
-    "input_param_t.depth_infinite offset (dfb0f796 x64)");
-MAGIC_SR_ABI_STATIC_ASSERT(offsetof(input_param_t, hdr_color) == 344,
-    "input_param_t.hdr_color offset (dfb0f796 x64)");
-MAGIC_SR_ABI_STATIC_ASSERT(MC_INPUT_PARAM_MIN_SIZE == 336u,
-    "MC_INPUT_PARAM_MIN_SIZE (dfb0f796 x64)");
-#endif
-
-typedef struct control_param_t {
-    unsigned int width;            // Width of the input image (pixel units), valid range: [64, 4032]
-    unsigned int height;           // Height of the input image (pixel units), valid range: [64, 4032]
-    float scaler_factor;           // Requested super-resolution scaling factor. Spatial: [1, 8]. Temporal: (1, 8]. x86/neon accept implemented integer scales only.
-    alg_mode_e alg_mode;         // 0 = SPATIAL_SPEED_MODE, 1 = SPATIAL_BALANCED_MODE, 2 = TEMPORAL_SPEED_MODE, 3 = TEMPORAL_BALANCED_MODE.
-    char model_path[256];          // File path of the pre-trained model (max 255 characters + null terminator)
-} control_param_t;
-
 /**
  * @brief Output status parameter structure for algorithm query
  * @details Stores the returned status and parameters when querying the algorithm,
@@ -481,7 +430,7 @@ typedef struct output_status_params_t {
     double gpu_time;
     unsigned int error_code;       // Algorithm error code: 0 = No error, non-zero = specific error (refer to error code specification)
     /*
-     * Last successful temporal MC_Process snapshot (QUERY_STATUS only).
+     * Last successful temporal MC_Enable snapshot.
      * These are not a substitute for temporal_frame_t input. They record
      * the last frame that passed validation and backend encode/process
      * (same moment as frame_index accept). GPU resources, command_buffer,
@@ -489,13 +438,13 @@ typedef struct output_status_params_t {
      * motion_vector_scale 0,0 stores the handle input size (W,H);
      * temporal_mv_jitter is the effective mc_mv_jitter_e (unspecified
      * input stores excluded). temporal_status_valid is 0 until the first
-     * successful temporal process, and after MC_Init or MC_Control
-     * resize/reinit. Spatial MC_Process does not update these fields.
+     * successful temporal process, and after handle creation or
+     * resize/reinit. Spatial MC_Enable does not update these fields.
      * Validation or backend failure leaves the previous successful
      * snapshot unchanged. When valid is 0, per-frame temporal_* fields
      * below are 0. Create-stage depth_reversed / depth_infinite /
-     * hdr_color are filled from the handle even when valid is 0 after a
-     * temporal MC_Init, so QUERY_STATUS can read the immutable contract.
+     * hdr_color are filled from the handle even when valid is 0, so
+     * status_info can read the immutable contract.
      */
     uint32_t temporal_status_valid;
     uint32_t temporal_mv_jitter; /* effective mc_mv_jitter_e; 0 when valid==0 */
@@ -520,28 +469,16 @@ typedef struct output_status_params_t {
 } output_status_params_t;
 
 /**
- * @brief Initialize the MC super-resolution algorithm and create a handle
- * @param param Pointer to the input parameter structure (input_param_t), contains initialization configuration
- *        including optional gpu_context (all-zero = library-owned/default).
- * @return void* - Algorithm handle (opaque pointer) for subsequent API calls; NULL = Initialization failed (invalid params/model not found/etc.)
- * @note The handle must be retained for other API functions and released via MC_Uninit()
- * @note gpu_context is copied by value and is not changed by MC_Control SET_PARAM.
- * @note For temporal modes (TEMPORAL_SPEED_MODE, TEMPORAL_BALANCED_MODE)
- *       the input contract is fixed: motion is
- *       current→previous; jitter/output are top-left, +X right, +Y down;
- *       depth is GPU device depth [0,1]. Create-stage depth_reversed,
- *       depth_infinite, and hdr_color come from input_param_t (conventional
- *       finite LDR when unspecified). motion_vector_scale (0,0) defaults
- *       to the current handle input width/height, including after
- *       MC_Control SET_PARAM resize. Depth/HDR are not reset on resize.
- *       MC_Init does not write a caller temporal_frame_t.
- */
-void* MC_Init(input_param_t* param);
-
-/**
- * @brief Super-resolution process. Dispatches by the handle's alg_mode_e
- *        from MC_Init / MC_Control.
- * @param handle Valid algorithm handle created by MC_Init()
+ * @brief Super-resolution process.
+ * @param handle Address of algorithm handle pointer (void **handle).
+ *        If *handle == NULL, this is treated as the initial call and initializes
+ *        the handle using param (param must not be NULL).
+ *        If *handle != NULL, validates handle integrity (0x11223344, 0xaabbccdd).
+ *        When param != NULL, checks whether mutable parameters (input_type, width,
+ *        height, scaler_factor, alg_mode, log_level, spatial_sharpen_level)
+ *        differ from the current handle configuration; if so, re-initializes.
+ *        Fixed parameters (model_path, gpu_context, backend, depth_reversed,
+ *        depth_infinite, hdr_color) are immutable after initial creation.
  * @param frame I/O resources. Spatial modes use image_in / image_out;
  *        frame->frame may be NULL. Temporal modes require
  *        frame->frame != NULL; primary color/output are image_in / image_out.
@@ -551,40 +488,33 @@ void* MC_Init(input_param_t* param);
  *        Zero-init + struct_size + resources and per-frame
  *        jitter/frame_index/camera is enough; mv_jitter 0 is excluded and
  *        motion_vector_scale (0,0) resolves to handle input (W,H).
+ * @param param Input configuration parameters (required on initial call;
+ *        optional on subsequent calls to keep current configuration).
+ * @param status_info Optional pointer to receive output status information (may be NULL).
  * @return 0 on success; negative MC_ERROR_* on failure.
  * @note Temporal modes always run internal descriptor validation
  *       before encode. Failures return MC_ERROR_* and are logged; GPU
  *       image sizes are not queried.
  */
-int MC_Process(void *handle, magic_frame_t *frame);
-
-/**
- * @brief Control interface for setting parameters or querying status
- * @param handle Valid algorithm handle created by MC_Init()
- * @param cmd Command type (cmd_params_e): SET_PARAM for setting, QUERY_STATUS for querying
- * @param ctrl Pointer to input parameters (used only when cmd = SET_PARAM; NULL for QUERY_STATUS)
- * @param output Pointer to output status structure (used only when cmd = QUERY_STATUS)
- * @return int - 0 = Operation succeeded; -1 = Operation failed (invalid handle/cmd/params)
- */
-int MC_Control(void* handle, cmd_params_e cmd, control_param_t* ctrl, output_status_params_t* output);
+int MC_Enable(void **handle, magic_frame_t *frame, input_param_t* param, output_status_params_t* status_info);
 
 /**
  * @brief Release all resources allocated by the MC algorithm
- * @param handle Algorithm handle created by MC_Init() (NULL is allowed, no operation performed)
- * @return int - 0 = Resource release succeeded; -1 = Release failed (invalid handle/residual resources)
+ * @param handle Algorithm handle (NULL is allowed, no operation performed)
+ * @return int - 0 = Resource release succeeded; negative error code = Release failed
  * @note After calling this function, the handle becomes invalid and cannot be used in other APIs
  */
-int MC_Uninit(void* handle);
+int MC_Disable(void* handle);
 
 /**
  * @brief Get the version string of the MC algorithm library
- * @return char* - Pointer to the null-terminated version string (e.g., "v2.0.0"); never returns NULL
+ * @return char* - Pointer to the null-terminated version string (e.g., "v2.1.0"); never returns NULL
  * @note The version string is a static constant, do not free the pointer
  */
 char *MC_GetVersion(void);
 
 /* Public error codes returned by MC_* APIs or exposed through output_status_params_t.error_code. */
-#define MC_ERROR_INIT_NULL_PARAM                  (-100001) /* MC_Init received a NULL input_param_t pointer. */
+#define MC_ERROR_INIT_NULL_PARAM                  (-100001) /* init received a NULL input_param_t pointer. */
 #define MC_ERROR_INIT_WIDTH_OUT_OF_RANGE          (-100002) /* Initialization width is outside the supported range. */
 #define MC_ERROR_INIT_HEIGHT_OUT_OF_RANGE         (-100003) /* Initialization height is outside the supported range. */
 #define MC_ERROR_INIT_SCALER_OUT_OF_RANGE         (-100004) /* Initialization scaler factor is outside the supported range. */
@@ -639,15 +569,25 @@ char *MC_GetVersion(void);
 #define MC_ERROR_MEMORY_INIT_FAST_X2_MODEL_ALLOC_FAILED (-200004) /* Memory allocation failed for fast x2 model data. */
 #define MC_ERROR_MEMORY_INIT_MODEL_DATA_ALLOC_FAILED (-200005) /* Memory allocation failed for model payload data. */
 
-#define MC_ERROR_PROCESS_NULL_HANDLE              (-101001) /* MC_Process received a NULL handle. */
-#define MC_ERROR_PROCESS_HANDLE_CORRUPTED         (-101002) /* MC_Process detected an invalid handle guard value. */
-#define MC_ERROR_PROCESS_NULL_IMAGE               (-101003) /* MC_Process received a NULL input or output image. */
+#define MC_ERROR_PROCESS_NULL_HANDLE              (-101001) /* MC_Enable received a NULL handle. */
+#define MC_ERROR_PROCESS_HANDLE_CORRUPTED         (-101002) /* MC_Enable detected an invalid handle guard value. */
+#define MC_ERROR_PROCESS_NULL_IMAGE               (-101003) /* MC_Enable received a NULL input or output image. */
 #define MC_ERROR_PROCESS_CPU_FUNC_MISSING         (-101004) /* CPU processing function pointers are not initialized. */
 #define MC_ERROR_PROCESS_TEXTURE_TYPE_INVALID     (-101005) /* Texture input or output pointer is invalid. */
 #define MC_ERROR_PROCESS_TEXTURE_TYPE_CONFLICT    (-101006) /* Texture type conflicts with the configured input type. */
 #define MC_ERROR_PROCESS_GPU_SR_FAILED            (-101007) /* GPU super-resolution stage failed. */
 #define MC_ERROR_PROCESS_GPU_RESIZE_FAILED        (-101008) /* GPU resize/post-filter stage failed. */
 #define MC_ERROR_PROCESS_GPU_POST_FAILED          (-101009) /* GPU post/upscale stage failed. */
+
+#define MC_ERROR_ENABLE_NULL_HANDLE               MC_ERROR_PROCESS_NULL_HANDLE
+#define MC_ERROR_ENABLE_HANDLE_CORRUPTED          MC_ERROR_PROCESS_HANDLE_CORRUPTED
+#define MC_ERROR_ENABLE_NULL_IMAGE                MC_ERROR_PROCESS_NULL_IMAGE
+#define MC_ERROR_ENABLE_CPU_FUNC_MISSING          MC_ERROR_PROCESS_CPU_FUNC_MISSING
+#define MC_ERROR_ENABLE_TEXTURE_TYPE_INVALID      MC_ERROR_PROCESS_TEXTURE_TYPE_INVALID
+#define MC_ERROR_ENABLE_TEXTURE_TYPE_CONFLICT     MC_ERROR_PROCESS_TEXTURE_TYPE_CONFLICT
+#define MC_ERROR_ENABLE_GPU_SR_FAILED             MC_ERROR_PROCESS_GPU_SR_FAILED
+#define MC_ERROR_ENABLE_GPU_RESIZE_FAILED         MC_ERROR_PROCESS_GPU_RESIZE_FAILED
+#define MC_ERROR_ENABLE_GPU_POST_FAILED           MC_ERROR_PROCESS_GPU_POST_FAILED
 
 #define MC_ERROR_TEMPORAL_NULL_FRAME              (-105001) /* Nested temporal_frame_t pointer is NULL. */
 #define MC_ERROR_TEMPORAL_STRUCT_SIZE             (-105002) /* temporal_frame_t.struct_size is below the required prefix. */
@@ -668,8 +608,8 @@ char *MC_GetVersion(void);
 
 #define MC_WARNING_TEMPORAL_FRAME_INDEX           (105001) /* frame_index is not last+1; history may be stale. */
 
-#define MC_ERROR_CONTROL_NULL_HANDLE              (-102001) /* MC_Control received a NULL handle. */
-#define MC_ERROR_CONTROL_HANDLE_CORRUPTED         (-102002) /* MC_Control detected an invalid handle guard value. */
+#define MC_ERROR_CONTROL_NULL_HANDLE              (-102001) /* Internal control received a NULL handle. */
+#define MC_ERROR_CONTROL_HANDLE_CORRUPTED         (-102002) /* Internal control detected an invalid handle guard value. */
 #define MC_ERROR_CONTROL_CMD_OUT_OF_RANGE         (-102003) /* Control command is outside the supported range. */
 #define MC_ERROR_CONTROL_NULL_PARAMS              (-102004) /* SET_PARAM command received a NULL control_param_t pointer. */
 #define MC_ERROR_CONTROL_WIDTH_OUT_OF_RANGE       (-102005) /* Control width is outside the supported range. */
@@ -682,8 +622,11 @@ char *MC_GetVersion(void);
 #define MC_ERROR_CONTROL_NULL_OUTPUT              (-102012) /* QUERY_STATUS command received a NULL output pointer. */
 #define MC_ERROR_MEMORY_CONTROL_ALLOC_FAILED      (-202001) /* Memory allocation failed during control. */
 
-#define MC_ERROR_UNINIT_NULL_HANDLE               (-103001) /* MC_Uninit received a NULL handle. */
-#define MC_ERROR_UNINIT_HANDLE_CORRUPTED          (-103002) /* MC_Uninit detected an invalid handle guard value. */
+#define MC_ERROR_UNINIT_NULL_HANDLE               (-103001) /* MC_Disable received a NULL handle. */
+#define MC_ERROR_UNINIT_HANDLE_CORRUPTED          (-103002) /* MC_Disable detected an invalid handle guard value. */
+
+#define MC_ERROR_DISABLE_NULL_HANDLE              MC_ERROR_UNINIT_NULL_HANDLE
+#define MC_ERROR_DISABLE_HANDLE_CORRUPTED         MC_ERROR_UNINIT_HANDLE_CORRUPTED
 #define MC_ERROR_MEMORY_UNINIT_DOUBLE_FREE        (-203001) /* Memory release count indicates a double free. */
 
 #define MC_ERROR_REPORT_INVALID_PARAM                (-104001) /* Report packet arguments are invalid. */
@@ -698,7 +641,7 @@ char *MC_GetVersion(void);
 #define MC_ERROR_REPORT_PARTIAL_SEND                 (-104010) /* Report packet was only partially sent. */
 
 #define MC_WARNING_MEMORY_LEAK_ON_FREE            (100001) /* Memory leak detected while freeing an internal handle. */
-#define MC_WARNING_MEMORY_LEAK_ON_UNINIT          (100002) /* Memory leak detected while uninitializing the API handle. */
+#define MC_WARNING_MEMORY_LEAK_ON_UNINIT          (100002) /* Memory leak detected while releasing the API handle. */
 
 
 #ifdef __cplusplus

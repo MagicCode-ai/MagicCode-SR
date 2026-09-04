@@ -16,4 +16,6 @@ public final class SuperResolutionLib {
                                           int outputWidth, int outputHeight);
 
     public static native void uninitSuperResolution();
+
+    public static native String getVersion();
 }

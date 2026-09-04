@@ -78,7 +78,7 @@ static uint32_t scaled_dimension(uint32_t value, float scaler)
     return (uint32_t)floor(scaled + 0.5);
 }
 
-static int mc_wrap_process(void *handle, void *in, void *out, input_type_e input_type, magic_backend_e backend)
+static int mc_wrap_process(void **handle, void *in, void *out, input_type_e input_type, magic_backend_e backend)
 {
     magic_frame_t f;
     memset(&f, 0, sizeof(f));
@@ -109,7 +109,17 @@ static int mc_wrap_process(void *handle, void *in, void *out, input_type_e input
     }
     f.frame = NULL;
     f.command_buffer = NULL;
-    return MC_Process(handle, &f);
+    return MC_Enable(handle, &f, NULL, NULL);
+}
+
+/* Re-create the handle when mutable (or immutable) init fields change. */
+static int mc_apply_param(void **handle, input_param_t *param)
+{
+    if (handle && *handle) {
+        MC_Disable(*handle);
+        *handle = NULL;
+    }
+    return MC_Enable(handle, NULL, param, NULL);
 }
 
 typedef struct ut_test_t
@@ -231,7 +241,6 @@ int32_t example()
                 param.width = video_gt_width[v]/video_scale[0];
                 param.scaler_factor = uttest.scaler_factor[0];
                 param.alg_mode = uttest.alg_mode[0];
-                param.num_threads = thread_nums+1;
                 param.input_type = uttest.input_type[t];
                 param.log_level = MAGIC_LOG_INFO;
                 param.backend = MAGIC_BACKEND_NEON;
@@ -246,10 +255,13 @@ int32_t example()
                 else
                     strcpy(param.model_path, uttest.gpu_model_path[(uint32_t)param.alg_mode]);
                 
-                void* handle = MC_Init(&param);
-                if (handle == NULL)
+                void* handle = NULL;
+                output_status_params_t init_st;
+                memset(&init_st, 0, sizeof(init_st));
+                int init_rc = MC_Enable(&handle, NULL, &param, &init_st);
+                if (init_rc != 0 || handle == NULL)
                 {
-                    printf("ERR: MC handle == NULL.\n");
+                    printf("ERR: MC_Enable init failed (%d).\n", init_rc);
                     return -5;
                 }
                 
@@ -314,27 +326,25 @@ int32_t example()
                         fseek(fp,SEEK_SET,0);
                         fseek(fp_gt,SEEK_SET,0);
                         
-                        control_param_t ctr_params;
-                        ctr_params.height = src_height;
-                        ctr_params.width = src_width;
-                        ctr_params.scaler_factor = uttest.scaler_factor[x];
-                        ctr_params.alg_mode = uttest.alg_mode[y];
+                        param.height = src_height;
+                        param.width = src_width;
+                        param.scaler_factor = uttest.scaler_factor[x];
+                        param.alg_mode = uttest.alg_mode[y];
                         
                         if(param.input_type == INPUT_BUFFER)
-                            strcpy(ctr_params.model_path, uttest.model_path[y*3+x]);
+                            strcpy(param.model_path, uttest.model_path[y*3+x]);
                         else
-                            strcpy(ctr_params.model_path, uttest.gpu_model_path[(uint32_t)ctr_params.alg_mode]);
+                            strcpy(param.model_path, uttest.gpu_model_path[(uint32_t)param.alg_mode]);
 #if 0//OUTPUT_SR_IMAGE
                         fwrite(yuv, 1, src_width * src_height*3/2, fp_sr_out);
                         //memcpy(uv_input, &yuv[src_width*src_height], src_width * src_height / 2);
                         //fwrite(uv_input, 1, src_width * src_height / 2, fp_sr_out);
                         fflush(fp_sr_out);
 #endif
-                        int ret = MC_Control(handle, SET_PARAM, &ctr_params, NULL);
-                        //printf("ERR: handle = (0x%x).\n", rlsp);
-                        if (ret < 0)
+                        int ret = mc_apply_param(&handle, &param);
+                        if (ret < 0 || handle == NULL)
                         {
-                            printf("ERR: MC_Control faulure (%d).\n", ret);
+                            printf("ERR: MC_Enable reconfigure failure (%d).\n", ret);
                             return -6;
                         }
                         
@@ -383,7 +393,10 @@ int32_t example()
                             struct timeval begin, end;
                             gettimeofday(&begin, 0);
                             
-                            int ret = mc_wrap_process(handle, rgba_texture, rgba_texture_out, param.input_type, param.backend);
+                            int ret = mc_wrap_process(&handle, rgba_texture, rgba_texture_out, param.input_type, param.backend);
+                            if (ret != 0) {
+                                printf("ERR: MC_Enable process failure (%d).\n", ret);
+                            }
                             //image_scale(out_y_sr, param.image, video_gt_width, video_gt_height,0.5);//video_scale[x]);
                             
                             gettimeofday(&end, 0);
@@ -394,7 +407,8 @@ int32_t example()
                             double sr_ms = ms;
                             
                             output_status_params_t out_param;
-                            MC_Control(handle, QUERY_STATUS, NULL, &out_param);
+                            memset(&out_param, 0, sizeof(out_param));
+                            MC_Enable(&handle, NULL, NULL, &out_param);
                             
                             sr_time_ms[thread_nums] += ms;
                             sr_gpu_time_ms = out_param.gpu_time;
@@ -448,8 +462,8 @@ int32_t example()
                         sr_time_ms[thread_nums] /= frame_num;
                         sr_gpu_time_ms /= frame_num;
                         
-                        if((param.input_type > 0 && ctr_params.scaler_factor > 2 && sr_psnr < 15.0)
-                           ||(param.input_type > 0 && ctr_params.scaler_factor == 2 &&sr_psnr < 30.0)
+                        if((param.input_type > 0 && param.scaler_factor > 2 && sr_psnr < 15.0)
+                           ||(param.input_type > 0 && param.scaler_factor == 2 &&sr_psnr < 30.0)
                            ||(param.input_type == 0 && sr_psnr < 30.0))
                         {
                             printf("ERROR: psnr is too low(%4.4f), results is wrong\n", sr_psnr);
@@ -468,7 +482,8 @@ int32_t example()
                     }
                 }
                 
-                MC_Uninit(handle);
+                MC_Disable(handle);
+                handle = NULL;
             }
             
 #if OUTPUT_SR_IMAGE

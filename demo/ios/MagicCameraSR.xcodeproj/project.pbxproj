@@ -178,7 +178,7 @@
 					"$(SRCROOT)/MagicCameraSR",
 					"$(SRCROOT)/../../interface",
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				ARCHS = arm64;
 				EXCLUDED_ARCHS = "i386 x86_64 armv7";
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../lib/ios";
@@ -193,6 +193,10 @@
 					ImageIO,
 					"-framework",
 					Metal,
+					"-framework",
+					MetalFX,
+					"-framework",
+					MetalPerformanceShaders,
 					"-framework",
 					QuartzCore,
 				);
@@ -215,7 +219,7 @@
 					"$(SRCROOT)/MagicCameraSR",
 					"$(SRCROOT)/../../interface",
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				ARCHS = arm64;
 				EXCLUDED_ARCHS = "i386 x86_64 armv7";
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../lib/ios";
@@ -230,6 +234,10 @@
 					ImageIO,
 					"-framework",
 					Metal,
+					"-framework",
+					MetalFX,
+					"-framework",
+					MetalPerformanceShaders,
 					"-framework",
 					QuartzCore,
 				);

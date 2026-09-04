@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Build Mac Apple Silicon (arm64) libmagic_sr.a and libmagic_sr_enable.a.
+# Build Mac Apple Silicon (arm64) libmagic_sr.a.
+# Flags match iOS Xcode Release (magic_sr.xcodeproj): -Os -g, NS assertions off.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -13,6 +14,7 @@ DEFS=(
   -DARCH_ARM
   -DSYS_MACOSX
   -DHAVE_POSIXTHREAD
+  -DNS_BLOCK_ASSERTIONS=1
 )
 INCS=(
   -I"${ROOT}/interface"
@@ -24,8 +26,9 @@ COMMON=(
   -arch arm64
   -isysroot "${SDK}"
   -mmacosx-version-min="${MIN_MACOS}"
-  -O2
+  -Os
   -g
+  -fno-common
   -fPIC
   "${DEFS[@]}"
   "${INCS[@]}"
@@ -42,6 +45,7 @@ C_SRCS=(
   "${ROOT}/src/magic_process.c"
   "${ROOT}/src/magic_report.c"
   "${ROOT}/src/magic_sr_c.c"
+  "${ROOT}/src/magic_temporal_common.c"
   "${ROOT}/src/arm/magic_sr_neon.c"
   "${ROOT}/src/arm/magic_sr_balanced_upscaler_neon.c"
   "${ROOT}/src/arm/magic_sr_speed_upscaler_neon.c"
@@ -49,6 +53,7 @@ C_SRCS=(
 M_SRCS=(
   "${ROOT}/src/metal/magic_sr_metal.m"
   "${ROOT}/src/metal/metal_device.m"
+  "${ROOT}/src/metal/temporal_validate_metal.m"
 )
 
 log() { echo "[build_mac_arm_lib] $*"; }
@@ -62,7 +67,7 @@ log "compile core C (${#C_SRCS[@]} files)"
 for src in "${C_SRCS[@]}"; do
   [[ -f "${src}" ]] || die "missing ${src}"
   obj="${BUILD_DIR}/$(basename "${src%.*}").o"
-  clang -std=c17 "${COMMON[@]}" -c "${src}" -o "${obj}"
+  clang -std=gnu17 "${COMMON[@]}" -c "${src}" -o "${obj}"
   objs+=("${obj}")
 done
 
@@ -80,17 +85,6 @@ rm -f "${core}"
 xcrun libtool -static -o "${core}" "${objs[@]}"
 xcrun ranlib "${core}"
 
-log "compile Enable"
-clang -std=c17 "${COMMON[@]}" -c "${ROOT}/interface/mc_enable.c" -o "${BUILD_DIR}/mc_enable.o"
-clang -std=gnu17 -fobjc-arc "${COMMON[@]}" -c "${ROOT}/interface/mc_enable_metal.m" \
-  -o "${BUILD_DIR}/mc_enable_metal.o"
-
-enable="${OUT_DIR}/libmagic_sr_enable.a"
-log "archive ${enable}"
-rm -f "${enable}"
-xcrun libtool -static -o "${enable}" "${core}" "${BUILD_DIR}/mc_enable.o" "${BUILD_DIR}/mc_enable_metal.o"
-xcrun ranlib "${enable}"
-
 has_defined_sym() {
   local lib="$1"
   local sym="$2"
@@ -105,16 +99,10 @@ need_sym() {
   fi
 }
 
-need_sym "${core}" "_MC_Init"
-need_sym "${core}" "_MC_Process"
-need_sym "${core}" "_MC_Uninit"
-if has_defined_sym "${core}" "_MC_Enable"; then
-  die "core lib should not export MC_Enable"
-fi
-need_sym "${enable}" "_MC_Enable"
-need_sym "${enable}" "_MC_Init"
+need_sym "${core}" "_MC_Enable"
+need_sym "${core}" "_MC_Disable"
+need_sym "${core}" "_MC_GetVersion"
 
 lipo -info "${core}"
-lipo -info "${enable}"
 log "OK"
-ls -lh "${core}" "${enable}"
+ls -lh "${core}"

@@ -46,6 +46,7 @@ static const NSTimeInterval kScaleApplyDelay = 0.08;
 @property(nonatomic) size_t outputTexWidth;
 @property(nonatomic) size_t outputTexHeight;
 @property(nonatomic) BOOL loggedFirstProcess;
+@property(nonatomic) unsigned int processOkCount;
 @end
 
 @implementation ViewController
@@ -67,6 +68,7 @@ static const NSTimeInterval kScaleApplyDelay = 0.08;
     self.engineScale = -1.0f;
     self.engineMode = (alg_mode_e)MAX_ALG_MODE;
     self.loggedFirstProcess = NO;
+    self.processOkCount = 0;
     NSLog(@"[MagicMagnifierSR] loaded MC_GetVersion=%s", MC_GetVersion());
     [self buildUi];
 
@@ -113,7 +115,20 @@ static const NSTimeInterval kScaleApplyDelay = 0.08;
     self.modeControl = [[UISegmentedControl alloc] initWithItems:@[@"speed", @"balanced"]];
     self.modeControl.selectedSegmentIndex = 0;
     [self.modeControl addTarget:self action:@selector(modeChanged:) forControlEvents:UIControlEventValueChanged];
-    [stack addArrangedSubview:self.modeControl];
+
+    UILabel *versionLabel = [[UILabel alloc] initWithFrame:CGRectZero];
+    versionLabel.text = [NSString stringWithFormat:@"MagicSR %s", MC_GetVersion()];
+    versionLabel.textColor = [UIColor.whiteColor colorWithAlphaComponent:0.85];
+    versionLabel.font = [UIFont systemFontOfSize:13 weight:UIFontWeightBold];
+    versionLabel.textAlignment = NSTextAlignmentRight;
+
+    UIStackView *topRow = [[UIStackView alloc] initWithFrame:CGRectZero];
+    topRow.axis = UILayoutConstraintAxisHorizontal;
+    topRow.alignment = UIStackViewAlignmentCenter;
+    topRow.spacing = 8;
+    [topRow addArrangedSubview:self.modeControl];
+    [topRow addArrangedSubview:versionLabel];
+    [stack addArrangedSubview:topRow];
 
     UIStackView *scaleRow = [[UIStackView alloc] initWithFrame:CGRectZero];
     scaleRow.axis = UILayoutConstraintAxisHorizontal;
@@ -408,34 +423,41 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
         frame.image_out.format = (uint32_t)MTLPixelFormatRGBA8Unorm;
         frame.image_out.mip_count = 1;
         frame.frame = NULL;
-        /* Spatial Metal: MC_Process ignores command_buffer and waits internally
+        /* Spatial Metal: MC_Enable ignores command_buffer and waits internally
          * (speed_sr_process / balanced_sr_process commit + waitUntilCompleted). */
         frame.command_buffer = NULL;
 
-        int ret = MC_Process(self.srHandle, &frame);
+        void *h = self.srHandle;
+        int ret = MC_Enable(&h, &frame, NULL, NULL);
+        self.srHandle = h;
         if (ret != 0) {
             @throw [NSException exceptionWithName:@"MCProcessError"
-                                           reason:[NSString stringWithFormat:@"MC_Process failed ret=%d scale=%.2f mode=%d",
+                                           reason:[NSString stringWithFormat:@"MC_Enable failed ret=%d scale=%.2f mode=%d",
                                                    ret, self.selectedScale, (int)self.selectedMode]
                                          userInfo:nil];
         }
+        self.processOkCount += 1;
         if (!self.loggedFirstProcess) {
             self.loggedFirstProcess = YES;
-            NSLog(@"[MagicMagnifierSR] MC_Process first ok version=%s ret=0 in=%zux%zu out=%zux%zu scale=%.3f mode=%d",
+            NSLog(@"[MagicMagnifierSR] MC_Enable first ok version=%s ret=0 in=%zux%zu out=%zux%zu scale=%.3f mode=%d",
                   MC_GetVersion(), cropW, cropH, outW, outH, self.selectedScale, (int)self.selectedMode);
+        } else if (self.processOkCount == 2) {
+            NSLog(@"[MagicMagnifierSR] MC_Enable subsequent ok version=%s ret=0 frame=%u in=%zux%zu out=%zux%zu scale=%.3f mode=%d",
+                  MC_GetVersion(), self.processOkCount, cropW, cropH, outW, outH, self.selectedScale, (int)self.selectedMode);
         }
 
         size_t outputBytes = outW * outH * 4;
         if (!self.outputRgbaData || self.outputRgbaData.length != outputBytes) {
             self.outputRgbaData = [NSMutableData dataWithLength:outputBytes];
         }
-        /* Safe: spatial MC_Process returned after GPU waitUntilCompleted. */
+        /* Safe: spatial MC_Enable returned after GPU waitUntilCompleted. */
         [self.outputTexture getBytes:self.outputRgbaData.mutableBytes
                           bytesPerRow:outW * 4
                            fromRegion:MTLRegionMake2D(0, 0, outW, outH)
                           mipmapLevel:0];
         UIImage *img = [self imageFromRgbaData:self.outputRgbaData width:outW height:outH];
-        NSString *status = [NSString stringWithFormat:@"mode=%@ scale=x%@ crop=%zux%zu out=%zux%zu",
+        NSString *status = [NSString stringWithFormat:@"ver=%s mode=%@ scale=x%@ crop=%zux%zu out=%zux%zu",
+                            MC_GetVersion(),
                             self.selectedMode == SPATIAL_BALANCED_MODE ? @"balanced" : @"speed",
                             [self formatScale:self.selectedScale],
                             cropW, cropH, outW, outH];
@@ -463,9 +485,9 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     }
 
     if (self.srHandle) {
-        int ur = MC_Uninit(self.srHandle);
+        int ur = MC_Disable(self.srHandle);
         if (ur != 0) {
-            NSLog(@"[MagicMagnifierSR] MC_Uninit failed ret=%d", ur);
+            NSLog(@"[MagicMagnifierSR] MC_Disable failed ret=%d", ur);
         }
         self.srHandle = NULL;
     }
@@ -479,36 +501,27 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     param.height = (unsigned int)height;
     param.scaler_factor = scale;
     param.alg_mode = mode;
-    param.num_threads = 1;
     param.log_level = MAGIC_LOG_INFO;
     param.backend = MAGIC_BACKEND_METAL;
     param.spatial_sharpen_level = 0;
     param.gpu_context.device = (__bridge void *)self.device;
     strncpy(param.model_path, modelPath.UTF8String, sizeof(param.model_path) - 1);
 
-    self.srHandle = MC_Init(&param);
-    if (!self.srHandle) {
-        @throw [NSException exceptionWithName:@"MCInitError"
-                                       reason:[NSString stringWithFormat:@"MC_Init failed scale=%.2f mode=%d model=%@",
-                                               scale, (int)mode, modelPath]
-                                     userInfo:nil];
-    }
     output_status_params_t st;
     memset(&st, 0, sizeof(st));
-    if (MC_Control(self.srHandle, QUERY_STATUS, NULL, &st) != 0) {
-        int ur = MC_Uninit(self.srHandle);
-        if (ur != 0) {
-            NSLog(@"[MagicMagnifierSR] MC_Uninit failed ret=%d after QUERY_STATUS", ur);
-        }
-        self.srHandle = NULL;
+    void *h = NULL;
+    int rc = MC_Enable(&h, NULL, &param, &st);
+    self.srHandle = h;
+    if (rc != 0 || !self.srHandle) {
         @throw [NSException exceptionWithName:@"MCInitError"
-                                       reason:@"QUERY_STATUS after MC_Init failed"
+                                       reason:[NSString stringWithFormat:@"MC_Enable init failed rc=%d scale=%.2f mode=%d model=%@",
+                                               rc, scale, (int)mode, modelPath]
                                      userInfo:nil];
     }
     if (st.width != (unsigned)width || st.height != (unsigned)height) {
-        int ur = MC_Uninit(self.srHandle);
+        int ur = MC_Disable(self.srHandle);
         if (ur != 0) {
-            NSLog(@"[MagicMagnifierSR] MC_Uninit failed ret=%d after size mismatch", ur);
+            NSLog(@"[MagicMagnifierSR] MC_Disable failed ret=%d after size mismatch", ur);
         }
         self.srHandle = NULL;
         @throw [NSException exceptionWithName:@"MCInitError"
@@ -524,7 +537,8 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     self.engineScale = scale;
     self.engineMode = mode;
     self.loggedFirstProcess = NO;
-    NSLog(@"[MagicMagnifierSR] MC_Init ok version=%s scale=%.3f mode=%d %zux%zu -> %ux%u model=%@",
+    self.processOkCount = 0;
+    NSLog(@"[MagicMagnifierSR] MC_Enable init ok version=%s scale=%.3f mode=%d %zux%zu -> %ux%u model=%@",
           MC_GetVersion(), scale, (int)mode, width, height, st.output_width, st.output_height, modelPath);
 }
 
@@ -708,9 +722,9 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
 
 - (void)restartEngineUnsafe {
     if (self.srHandle) {
-        int ur = MC_Uninit(self.srHandle);
+        int ur = MC_Disable(self.srHandle);
         if (ur != 0) {
-            NSLog(@"[MagicMagnifierSR] MC_Uninit failed ret=%d", ur);
+            NSLog(@"[MagicMagnifierSR] MC_Disable failed ret=%d", ur);
         }
         self.srHandle = NULL;
     }
@@ -728,6 +742,7 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     self.engineScale = -1.0f;
     self.engineMode = (alg_mode_e)MAX_ALG_MODE;
     self.loggedFirstProcess = NO;
+    self.processOkCount = 0;
 }
 
 - (void)failAndStop:(NSString *)message {
