@@ -104,7 +104,7 @@ In-game clip with on-screen HUD comparing the original stream against MagicSR.
 
 ### Productization Support
 
-In addition to its advantages in processing speed and image quality, MagicSR is product-ready: it supports mainstream mobile backends such as Metal, Vulkan, and OpenGLES, and provides Unity and UE plugins.
+In addition to its advantages in processing speed and image quality, MagicSR is product-ready: it supports mainstream mobile backends such as Metal, Vulkan, and OpenGLES.
 
 MagicSR supports mainstream CPU and GPU backends:
 
